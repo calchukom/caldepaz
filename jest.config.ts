@@ -4,10 +4,10 @@ const config: Config = {
   preset: 'ts-jest',
   testEnvironment: 'node',
   verbose: true,
-  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'], // support flexible test file naming
+  testMatch: ['**/__tests__/**/*.test.ts', '**/?(*.)+(spec|test).ts'],
   moduleNameMapper: {
-    '^(\\.{1,2}/.*)\\.js$': '$1', // ✅ fix .js import resolution for TS files
-    '^@/(.*)$': '<rootDir>/src/$1', // ✅ optional: support `@/` aliases if using in tsconfig
+    '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
   },
   transform: {
     '^.+\\.ts$': ['ts-jest', {
@@ -17,10 +17,21 @@ const config: Config = {
   resetMocks: true,
   clearMocks: true,
   restoreMocks: true,
-  testTimeout: 30000, // 30 seconds instead of 60
-  detectOpenHandles: true, // Detect memory leaks
-  forceExit: true, // Force exit after tests complete
+  testTimeout: 10000, // Reduced timeout for simple tests
+  detectOpenHandles: false, // Disabled for simple tests
+  forceExit: true,
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  // Collect coverage from source files
+  collectCoverageFrom: [
+    'src/**/*.ts',
+    '!src/**/*.d.ts',
+    '!src/drizzle/migrations/**',
+    '!src/__tests__/**',
+  ],
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  // Suppress console output during tests
+  silent: true,
 };
 
 export default config;

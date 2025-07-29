@@ -1,23 +1,21 @@
 // jest.setup.ts
-// Global test setup for Jest
+// Global test setup for Jest - Simple configuration
 
-// Increase timeout for all tests
-jest.setTimeout(30000);
+// Set test timeout
+jest.setTimeout(10000);
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
 process.env.JWT_SECRET = 'test-jwt-secret-key-for-testing-only';
-process.env.DATABASE_URL = 'postgresql://test:test@localhost:5432/test_db';
-process.env.REDIS_URL = 'redis://localhost:6379';
 
-// Mock console.log in tests to reduce noise
+// Mock console methods to reduce noise (but keep errors visible)
 global.console = {
     ...console,
     log: jest.fn(),
     debug: jest.fn(),
     info: jest.fn(),
     warn: jest.fn(),
-    error: console.error, // Keep errors visible
+    error: console.error, // Keep errors visible for debugging
 };
 
 // Global test cleanup
@@ -25,12 +23,20 @@ afterEach(() => {
     jest.clearAllMocks();
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+// Mock any global modules that might cause issues
+jest.mock('ioredis', () => {
+    return jest.fn().mockImplementation(() => ({
+        get: jest.fn(),
+        set: jest.fn(),
+        del: jest.fn(),
+        quit: jest.fn(),
+    }));
 });
 
-// Handle uncaught exceptions
-process.on('uncaughtException', (error) => {
-    console.error('Uncaught Exception:', error);
-});
+jest.mock('@neondatabase/serverless', () => ({
+    neon: jest.fn(() => jest.fn()),
+}));
+
+jest.mock('drizzle-orm/neon-http', () => ({
+    drizzle: jest.fn(() => ({})),
+}));
