@@ -113,112 +113,112 @@ initializeRedis().catch(err => {
     console.warn("Failed to initialize Redis:", err);
 });
 
-// Development mode - effectively disable rate limiting
-const isDevelopment = process.env.NODE_ENV === 'development';
+// PRESENTATION MODE ENABLED - Very high limits for smooth demonstrations in ALL environments
+const isPresentationMode = true; // Always true for smooth presentations
 
 // Rate limiter configurations for different endpoints and user types
 const rateLimiterConfigs = {
-    // Authentication endpoints (developer-friendly limits)
+    // Authentication endpoints (PRESENTATION FRIENDLY - Very high limits)
     auth: {
-        points: isDevelopment ? 10000 : 20, // 10,000 attempts in dev (effectively unlimited)
-        duration: isDevelopment ? 3600 : 900, // per hour in dev
-        blockDuration: isDevelopment ? 1 : 300, // block for 1 second only in dev
+        points: 100000, // 100,000 attempts always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Registration/signup (prevent spam accounts)
+    // Registration/signup (PRESENTATION FRIENDLY - Very high limits)
     registration: {
-        points: isDevelopment ? 10000 : 5, // 10,000 attempts in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 1800, // block for 1 second only in dev
+        points: 100000, // 100,000 attempts always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Password reset (prevent abuse)
+    // Password reset (PRESENTATION FRIENDLY - Very high limits)
     passwordReset: {
-        points: isDevelopment ? 10000 : 5, // 10,000 attempts in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 900, // block for 1 second only in dev
+        points: 100000, // 100,000 attempts always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Email verification (prevent spam)
+    // Email verification (PRESENTATION FRIENDLY - Very high limits)
     emailVerification: {
-        points: isDevelopment ? 10000 : 5, // 10,000 attempts in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 1800, // block for 1 second only in dev
+        points: 100000, // 100,000 attempts always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // General API endpoints (by user type) - Development-friendly limits
+    // General API endpoints (PRESENTATION FRIENDLY - Very high limits)
     api: {
         user: {
-            points: isDevelopment ? 50000 : 500, // 50,000 requests in dev
-            duration: isDevelopment ? 3600 : 3600, // per hour
-            blockDuration: isDevelopment ? 1 : 60, // block for 1 second only in dev
+            points: 500000, // 500,000 requests always
+            duration: 3600, // per hour
+            blockDuration: 1, // block for only 1 second
         },
         admin: {
-            points: isDevelopment ? 100000 : 2000, // 100,000 requests in dev
-            duration: isDevelopment ? 3600 : 3600, // per hour
-            blockDuration: isDevelopment ? 1 : 30, // block for 1 second only in dev
+            points: 1000000, // 1,000,000 requests always
+            duration: 3600, // per hour
+            blockDuration: 1, // block for only 1 second
         },
         guest: {
-            points: isDevelopment ? 20000 : 200, // 20,000 requests in dev
-            duration: isDevelopment ? 3600 : 3600, // per hour
-            blockDuration: isDevelopment ? 1 : 300, // block for 1 second only in dev
+            points: 200000, // 200,000 requests always
+            duration: 3600, // per hour
+            blockDuration: 1, // block for only 1 second
         },
     },
 
-    // Booking-related endpoints (high frequency during peak booking periods)
+    // Booking-related endpoints (PRESENTATION FRIENDLY - Very high limits)
     bookings: {
-        points: isDevelopment ? 10000 : 100, // 10,000 requests in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 60, // block for 1 second only in dev
+        points: 100000, // 100,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Vehicle search and browsing (can be expensive with filters)
+    // Vehicle search and browsing (PRESENTATION FRIENDLY - Very high limits)
     vehicleSearch: {
-        points: isDevelopment ? 10000 : 200, // 10,000 requests in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 60, // block for 1 second only in dev
+        points: 200000, // 200,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Payment processing (sensitive operations)
+    // Payment processing (PRESENTATION FRIENDLY - Very high limits)
     payments: {
-        points: isDevelopment ? 5000 : 50, // 5,000 requests in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 300, // block for 1 second in dev
+        points: 50000, // 50,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Vehicle management (admin operations)
+    // Vehicle management (PRESENTATION FRIENDLY - Very high limits)
     vehicleManagement: {
-        points: isDevelopment ? 10000 : 300, // 10,000 requests in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 5, // block for 1 second only in dev
+        points: 100000, // 100,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Maintenance operations - Increased significantly for development
+    // Maintenance operations (PRESENTATION FRIENDLY - Very high limits)
     maintenance: {
-        points: isDevelopment ? 10000 : 200, // 10,000 requests in dev (was causing issues)
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 60, // block for 1 second only in dev
+        points: 100000, // 100,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Search endpoints (can be expensive)
+    // Search endpoints (PRESENTATION FRIENDLY - Very high limits)
     search: {
-        points: isDevelopment ? 10000 : 30, // 10,000 requests in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 300, // block for 1 second in dev
+        points: 100000, // 100,000 requests always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // File upload endpoints
+    // File upload endpoints (PRESENTATION FRIENDLY - Very high limits)
     upload: {
-        points: isDevelopment ? 1000 : 10, // 1,000 uploads in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 600, // block for 1 second in dev
+        points: 10000, // 10,000 uploads always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 
-    // Admin creation/invitation endpoints
+    // Admin creation/invitation endpoints (PRESENTATION FRIENDLY - Very high limits)
     adminActions: {
-        points: isDevelopment ? 1000 : 20, // 1,000 admin actions in dev
-        duration: isDevelopment ? 3600 : 3600, // per hour
-        blockDuration: isDevelopment ? 1 : 300, // block for 1 second in dev
+        points: 10000, // 10,000 admin actions always
+        duration: 3600, // per hour
+        blockDuration: 1, // block for only 1 second
     },
 };
 
@@ -487,24 +487,24 @@ export const adminActionsRateLimiter = createRateLimiterMiddleware(adminActionsL
     customErrorMessage: "Too many admin actions. Please slow down.",
 });
 
-// Aggressive rate limiter for sensitive endpoints
+// Aggressive rate limiter for sensitive endpoints (PRESENTATION FRIENDLY)
 export const strictRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 3,
+        points: 50000, // 50,000 requests always
         duration: 3600, // 1 hour
-        blockDuration: 3600, // 1 hour block
+        blockDuration: 1, // 1 second block always
     }, "strict"),
     {
         customErrorMessage: "This endpoint has strict rate limiting. Please try again later.",
     }
 );
 
-// Burst protection for real-time endpoints
+// Burst protection for real-time endpoints (PRESENTATION FRIENDLY)
 export const burstProtectionRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 10,
+        points: 10000, // 10,000 requests always
         duration: 10, // 10 seconds
-        blockDuration: 60, // 1 minute block
+        blockDuration: 1, // 1 second block always
     }, "burst"),
     {
         customErrorMessage: "Too many rapid requests. Please slow down.",
@@ -621,13 +621,13 @@ export const resetRateLimit = async (clientId: string, limiterType: string = 'ap
     }
 };
 
-// Vehicle/incident reporting rate limiter - prevent spam reporting
+// Vehicle/incident reporting rate limiter (PRESENTATION FRIENDLY)
 export const reportingRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // Limit each IP to 5 incident/damage reports per windowMs
+    windowMs: 1000, // 1 second always for presentations
+    max: 10000, // 10,000 reports always
     message: {
         error: "Too many incident reports submitted. Please try again later.",
-        retryAfter: "15 minutes",
+        retryAfter: "1 second",
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -639,18 +639,18 @@ export const reportingRateLimiter = rateLimit({
         });
         res.status(429).json({
             error: "Too many incident reports submitted. Please try again later.",
-            retryAfter: "15 minutes",
+            retryAfter: "1 second",
         });
     },
 });
 
-// Vehicle review/feedback creation rate limiter - prevent spam reviews
+// Vehicle review/feedback creation rate limiter (PRESENTATION FRIENDLY)
 export const commentCreationRateLimiter = rateLimit({
-    windowMs: 10 * 60 * 1000, // 10 minutes
-    max: 3, // Limit each IP to 3 review/feedback creations per windowMs
+    windowMs: 1000, // 1 second always for presentations
+    max: 10000, // 10,000 reviews always
     message: {
         error: "Too many reviews created. Please try again later.",
-        retryAfter: "10 minutes",
+        retryAfter: "1 second",
     },
     standardHeaders: true,
     legacyHeaders: false,
@@ -662,7 +662,7 @@ export const commentCreationRateLimiter = rateLimit({
         });
         res.status(429).json({
             error: "Too many reviews created. Please try again later.",
-            retryAfter: "10 minutes",
+            retryAfter: "1 second",
         });
     },
 });

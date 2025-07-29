@@ -84,7 +84,7 @@ export const createJWTToken = (payload: {
     }
 
     return jwt.sign(payload, JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRES_IN || "15m"
+        expiresIn: process.env.JWT_EXPIRES_IN || "365d"  // Default to 365 days for presentations
     } as jwt.SignOptions);
 };
 
@@ -99,7 +99,7 @@ export const createRefreshToken = (payload: {
     }
 
     return jwt.sign(payload, REFRESH_TOKEN_SECRET, {
-        expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d"
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || "365d"  // Default to 365 days for presentations
     } as jwt.SignOptions);
 };
 
