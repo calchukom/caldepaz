@@ -1,0 +1,1878 @@
+# Vehicle Rental Management System API - Client HTTP Requests
+# Base URL: http://localhost:7000/api
+# Replace tokens with actual JWT tokens from authentication responses
+
+@baseUrl = http://localhost:7000/api
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlNWEzMjc0Mi0xOGZkLTQ5ZjctYTQxMy1mOWEwOGExMTQ2MTgiLCJlbWFpbCI6ImNhbGVib2dldG8xQGdtYWlsLmNvbSIsInJvbGUiOiJhZG1pbiIsImZpcnN0bmFtZSI6IkNhbGViIiwibGFzdG5hbWUiOiJPZ2V0byIsImNvbnRhY3RfcGhvbmUiOiIrMjU0NzAwMDAwMDAwIiwiaWF0IjoxNzUzNDk5NTU1LCJleHAiOjE3NTM1MDA0NTV9.RuzVIhGeEZ5f7fYSUn_JMYCCTPvF1umNNJWd5P3wxWQ
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlNWEzMjc0Mi0xOGZkLTQ5ZjctYTQxMy1mOWEwOGExMTQ2MTgiLCJlbWFpbCI6ImNhbGVib2dldG8xQGdtYWlsLmNvbSIsInJvbGUiOiJhZG1pbiIsImZpcnN0bmFtZSI6IkNhbGViIiwibGFzdG5hbWUiOiJPZ2V0byIsImNvbnRhY3RfcGhvbmUiOiIrMjU0NzAwMDAwMDAwIiwiaWF0IjoxNzUzNDk5NTU1LCJleHAiOjE3NTM1MDA0NTV9.RuzVIhGeEZ5f7fYSUn_JMYCCTPvF1umNNJWd5P3wxWQ
+@refreshToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlNWEzMjc0Mi0xOGZkLTQ5ZjctYTQxMy1mOWEwOGExMTQ2MTgiLCJlbWFpbCI6ImNhbGVib2dldG8xQGdtYWlsLmNvbSIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzUzMjU4NTE1LCJleHAiOjE3NTM4NjMzMTV9.oJbclQEn3ptCZOplvjO_bH-FRToc4vAAQMMigBemqDQ
+# Replace these UUIDs with actual values from your seeded database
+@userId = e5a32742-18fd-49f7-a413-f9a08a114618
+@vehicleId = 01b93ad4-ef07-47ac-892e-a2fb3a4dc588
+@bookingId = 550e8400-e29b-41d4-a716-446655440002
+@paymentId = 550e8400-e29b-41d4-a716-446655440003
+@locationId = 01d3406d-03ca-47c9-b3cf-4b79fe790201
+@specId = 550e8400-e29b-41d4-a716-446655440005
+@ticketId = 550e8400-e29b-41d4-a716-446655440006
+@inviteToken = 713290
+@resetToken = your_reset_token_here
+@maintenanceId = 550e8400-e29b-41d4-a716-446655440007
+@imageId = 550e8400-e29b-41d4-a716-446655440008
+
+
+### ==============================================
+### SYSTEM HEALTH & BASIC ENDPOINTS
+### ==============================================
+
+### Server Health Check
+GET http://localhost:7000/health
+
+### Welcome Page
+GET http://localhost:7000/
+
+### Readiness Probe
+GET http://localhost:7000/ready
+
+### Liveness Probe  
+GET http://localhost:7000/live
+
+### API Documentation (Swagger UI)
+GET http://localhost:7000/api-docs
+
+### API Documentation (Alternative URL)
+GET http://localhost:7000/api/docs
+
+### API Specification (JSON)
+GET http://localhost:7000/swagger.json
+
+### ==============================================
+### AUTHENTICATION ENDPOINTS
+### ==============================================
+
+### Register a new user
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "firstname": "John",
+  "lastname": "Doe",
+  "email": "john.doe@example.com",
+  "password": "SecurePass123!",
+  "contact_phone": "+254712345678",
+  "address": "123 Main Street, Nairobi"
+}
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "calebogeto1@gmail.com",
+  "password": "calebogeto1"
+}
+
+### Get Current User Profile
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{userToken}}
+
+### Refresh Token
+POST {{baseUrl}}/auth/refresh
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Logout
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### Forgot Password (generates reset token and 6-digit code)
+# This will send a reset code to your email address
+# For testing without email, check server console logs or set up email service
+POST {{baseUrl}}/auth/forgot-password
+Content-Type: application/json
+
+{
+  "email": "calebogeto1@gmail.com"
+}
+
+### Reset Password with Token (using token from email/database)
+# Step 1: Call "Forgot Password" above to generate a reset token
+# Step 2: Use the token from database or email link in the request below
+POST {{baseUrl}}/auth/reset-password
+Content-Type: application/json
+
+{
+  "token": "{{resetToken}}",
+  "newPassword": "admin123"
+}
+
+### Reset Password with Verification Code (6-digit code from email)
+# Step 1: Call "Forgot Password" above to generate a reset code
+# Step 2: Check your email for the 6-digit verification code  
+# Step 3: Use the code from your email in the request below
+POST {{baseUrl}}/auth/reset-password-with-code
+Content-Type: application/json
+
+{
+  "email": "calebogeto1@gmail.com",
+  "resetCode": "844784",
+  "newPassword": "calebogeto1"
+}
+
+### Change Password
+PUT {{baseUrl}}/auth/change-password
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "admin123",
+  "newPassword": "calebogeto1",
+  "confirmPassword": "calebogeto1"
+}
+
+### ==============================================
+### INVITATION ENDPOINTS (Admin Only)
+### ==============================================
+
+### Send Invitation (Admin only)
+POST {{baseUrl}}/auth/invite
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "calebogeto01@gmail.com",
+  "role": "user"
+}
+
+### Get Invitation Details by Token
+GET {{baseUrl}}/auth/invite/{{inviteToken}}
+
+### Accept Invitation
+POST {{baseUrl}}/auth/invite/accept
+Content-Type: application/json
+
+{
+  "inviteToken": "{{inviteToken}}",
+  "firstname": "caleb",
+  "lastname": "ogeto01",
+  "password": "user123",
+  "contact_phone": "+254712345679",
+  "address": "456 Park Avenue, Nairobi"
+}
+
+### Revoke Invitation (Admin only)
+DELETE {{baseUrl}}/auth/invite/{{inviteToken}}
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### USER MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Get User Statistics (Admin only)
+GET {{baseUrl}}/users/statistics
+Authorization: Bearer {{adminToken}}
+
+### Search Users (Admin only) - Search by name
+GET {{baseUrl}}/users/search?q=caleb&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Search Users (Admin only) - Alternative search example
+GET {{baseUrl}}/users/search?q=caleb&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get All Users (Admin only)
+GET {{baseUrl}}/users?page=1&limit=10&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Create User (Admin only)
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstname": "Alice",
+  "lastname": "Johnson",
+  "email": "alice.johnson@example.com",
+  "password": "SecurePass123!",
+  "contact_phone": "+254712345680",
+  "address": "789 Garden Road, Nairobi",
+  "role": "user"
+}
+
+### Get User by ID (Admin or Owner)
+GET {{baseUrl}}/users/details/{{userId}}
+Authorization: Bearer {{userToken}}
+
+### Update User (Admin or Owner)
+PUT {{baseUrl}}/users/update/{{userId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "firstname": "caleb Updated",
+  "lastname": "calchuk Updated",
+  "contact_phone": "+254712345681",
+  "address": "Updated Address, Nairobi"
+}
+
+### Update User Password (Owner only)
+PUT {{baseUrl}}/users/password/{{userId}}
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "currentPassword": "user123",
+  "newPassword": "user123new",
+  "confirmPassword": "user123new"
+}
+
+### Delete User (Admin only)
+DELETE {{baseUrl}}/users/delete/{{userId}}
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### LOCATION MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Get All Locations (Public)
+GET {{baseUrl}}/locations?page=1&limit=10&search=downtown&sortBy=name&sortOrder=asc
+
+### Get Location by ID (Public)
+GET {{baseUrl}}/locations/{{locationId}}
+
+### Create Location (Admin only)
+POST {{baseUrl}}/locations
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Downtown Branch",
+  "address": "123 Downtown Ave, City Center",
+  "contact_phone": "+254712345890"
+}
+
+### Update Location (Admin only)
+PUT {{baseUrl}}/locations/{{locationId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "name": "Downtown Branch Updated",
+  "address": "456 Downtown Ave, City Center",
+  "contact_phone": "+254712345891"
+}
+
+### Delete Location (Admin only)
+DELETE {{baseUrl}}/locations/{{locationId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Popular Locations (Public)
+GET {{baseUrl}}/locations/popular
+
+### Get Popular Kenyan Locations (Public) - with limit
+GET {{baseUrl}}/locations/popular?limit=12&source=kenyan
+
+### Get Popular Database Locations (Public) - from existing locations with booking stats
+GET {{baseUrl}}/locations/popular?limit=5&source=database
+
+### Get Popular External API Locations (Public) - from real Kenyan location APIs
+GET {{baseUrl}}/locations/popular?limit=8&source=external
+
+### Get Popular External API Locations (Public) - alternative parameter
+GET {{baseUrl}}/locations/popular?limit=10&source=api
+
+### Get Popular Locations with IDs for Admin Selection (Admin only)
+GET {{baseUrl}}/locations/popular-with-ids?limit=20&source=external
+Authorization: Bearer {{adminToken}}
+
+### Get Popular Kenyan Locations with IDs for Admin Selection (Admin only)
+GET {{baseUrl}}/locations/popular-with-ids?limit=15&source=kenyan
+Authorization: Bearer {{adminToken}}
+
+### Create Location from Popular API Selection (Admin only)
+POST {{baseUrl}}/locations/create-from-popular
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "locationId": 10,
+  "source": "external"
+}
+
+### Create Location from Popular Kenyan Selection (Admin only)
+POST {{baseUrl}}/locations/create-from-popular
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "locationId": 5,
+  "source": "kenyan"
+}
+
+### Get Location Statistics (Admin only)
+GET {{baseUrl}}/locations/statistics
+Authorization: Bearer {{adminToken}}
+
+
+### ==============================================
+### VEHICLE SPECIFICATIONS ENDPOINTS
+### ==============================================
+
+### Get Popular Vehicle Specifications (Public)
+# Returns the most popular vehicle specifications based on vehicle count
+# Optional query parameters:
+# - limit: Number of results (1-50, default: 10)
+GET {{baseUrl}}/vehicle-specifications/popular?limit=10
+
+### Get Popular Vehicle Specifications - Alternative Example
+GET {{baseUrl}}/vehicle-specifications/popular?limit=5
+
+### Get All Vehicle Specifications (Public)
+# Supports pagination, search, filtering, and sorting
+# Query parameters:
+# - page: Page number (default: 1)
+# - limit: Items per page (1-100, default: 10)
+# - search: Search in manufacturer, model, color, features (min 2 chars)
+# - manufacturer: Filter by manufacturer name
+# - fuel_type: petrol, diesel, electric, hybrid
+# - transmission: manual, automatic, cvt
+# - vehicle_category: four_wheeler, two_wheeler
+# - seating_capacity: Number of seats
+# - year_from: Minimum year (1990+)
+# - year_to: Maximum year
+# - sortBy: manufacturer, model, year, created_at, updated_at (default: created_at)
+# - sortOrder: asc, desc (default: desc)
+GET {{baseUrl}}/vehicle-specifications?page=1&limit=10&search=toyota&manufacturer=Toyota&fuel_type=petrol&transmission=automatic&seating_capacity=5&sortBy=year&sortOrder=desc
+
+### Get All Vehicle Specifications - Basic Example
+GET {{baseUrl}}/vehicle-specifications
+
+### Get All Vehicle Specifications - Search Example
+GET {{baseUrl}}/vehicle-specifications?search=honda&limit=5
+
+### Get All Vehicle Specifications - Filter by Category
+GET {{baseUrl}}/vehicle-specifications?vehicle_category=four_wheeler&fuel_type=electric&page=1&limit=20
+
+### Get All Vehicle Specifications - Year Range Filter
+GET {{baseUrl}}/vehicle-specifications?year_from=2023&year_to=2024&sortBy=year&sortOrder=asc
+
+### Get Vehicle Specification by ID (Public)
+# Replace {{specId}} with actual vehicle specification ID
+GET {{baseUrl}}/vehicle-specifications/{{specId}}
+
+### Get Vehicle Specification Statistics (Admin only)
+# Returns comprehensive statistics about all vehicle specifications
+# Includes:
+# - Total specifications count
+# - Count by category (four_wheeler, two_wheeler)
+# - Count by fuel type
+# - Count by manufacturer
+# - Average year
+# - Newest specification details
+GET {{baseUrl}}/vehicle-specifications/statistics
+Authorization: Bearer {{adminToken}}
+
+### Create Vehicle Specification (Admin only)
+# Creates a new vehicle specification
+# All fields except optional ones are required
+# Duplicate prevention: checks manufacturer, model, year, fuel_type, transmission, vehicle_category
+POST {{baseUrl}}/vehicle-specifications
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "manufacturer": "Toyota",
+  "model": "Camry",
+  "year": 2024,
+  "fuel_type": "petrol",
+  "engine_capacity": "2.5L",
+  "transmission": "automatic",
+  "seating_capacity": 5,
+  "color": "White",
+  "features": "Air Conditioning, GPS Navigation, Backup Camera, Bluetooth, Lane Assist",
+  "vehicle_category": "four_wheeler"
+}
+
+### Create Vehicle Specification - Electric Vehicle Example
+POST {{baseUrl}}/vehicle-specifications
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "manufacturer": "Tesla",
+  "model": "Model 3",
+  "year": 2024,
+  "fuel_type": "electric",
+  "engine_capacity": "75kWh Battery",
+  "transmission": "automatic",
+  "seating_capacity": 5,
+  "color": "Pearl White",
+  "features": "Autopilot, Premium Audio, Glass Roof, Heated Seats, Supercharging",
+  "vehicle_category": "four_wheeler"
+}
+
+### Create Vehicle Specification - Motorcycle Example
+POST {{baseUrl}}/vehicle-specifications
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "manufacturer": "Honda",
+  "model": "CBR600RR",
+  "year": 2023,
+  "fuel_type": "petrol",
+  "engine_capacity": "599cc",
+  "transmission": "manual",
+  "seating_capacity": 2,
+  "color": "Racing Red",
+  "features": "ABS, Traction Control, Quick Shifter, LED Headlights",
+  "vehicle_category": "two_wheeler"
+}
+
+### Create Vehicle Specification - Minimal Required Fields
+POST {{baseUrl}}/vehicle-specifications
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "manufacturer": "Nissan",
+  "model": "Altima",
+  "year": 2023,
+  "fuel_type": "hybrid",
+  "transmission": "cvt",
+  "seating_capacity": 5,
+  "vehicle_category": "four_wheeler"
+}
+
+### Update Vehicle Specification (Admin only)
+# Updates existing vehicle specification
+# All fields are optional - only provided fields will be updated
+# Replace {{specId}} with actual vehicle specification ID
+PUT {{baseUrl}}/vehicle-specifications/{{specId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "year": 2025,
+  "features": "Air Conditioning, GPS Navigation, Backup Camera, Bluetooth, Heated Seats, Wireless Charging",
+  "color": "Midnight Black"
+}
+
+### Update Vehicle Specification - Single Field Example
+PUT {{baseUrl}}/vehicle-specifications/{{specId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "engine_capacity": "3.0L Turbo"
+}
+
+### Update Vehicle Specification - Multiple Fields Example
+PUT {{baseUrl}}/vehicle-specifications/{{specId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "fuel_type": "hybrid",
+  "transmission": "automatic",
+  "features": "Hybrid Engine, Regenerative Braking, Eco Mode, Smart Key"
+}
+
+### Get Fuel Types (for dropdowns) - Public
+GET {{baseUrl}}/vehicle-specifications/fuel-types
+
+### Get Transmission Types (for dropdowns) - Public
+GET {{baseUrl}}/vehicle-specifications/transmission-types
+
+### Get Unique Manufacturers (Public)
+GET {{baseUrl}}/vehicle-specifications/manufacturers
+
+### Get Models by Manufacturer (Public)
+GET {{baseUrl}}/vehicle-specifications/manufacturers/Toyota/models
+
+### Bulk Create Vehicle Specifications (Admin only)
+POST {{baseUrl}}/vehicle-specifications/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "specifications": [
+    {
+      "manufacturer": "Ford",
+      "model": "Focus",
+      "year": 2023,
+      "fuel_type": "petrol",
+      "engine_capacity": "2.0L",
+      "transmission": "manual",
+      "seating_capacity": 5,
+      "color": "Blue",
+      "features": "Air Conditioning, Power Steering, Electric Windows",
+      "vehicle_category": "four_wheeler"
+    },
+    {
+      "manufacturer": "BMW",
+      "model": "X3",
+      "year": 2024,
+      "fuel_type": "diesel",
+      "engine_capacity": "2.0L Turbo",
+      "transmission": "automatic",
+      "seating_capacity": 5,
+      "color": "Black",
+      "features": "AWD, Premium Audio, Navigation, Leather Seats",
+      "vehicle_category": "four_wheeler"
+    }
+  ]
+}
+
+### Delete Vehicle Specification (Admin only)
+# Deletes vehicle specification if no vehicles are using it
+# Replace {{specId}} with actual vehicle specification ID
+DELETE {{baseUrl}}/vehicle-specifications/{{specId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Fuel Types (for dropdowns)
+GET {{baseUrl}}/vehicle-specifications/fuel-types
+
+### Get Transmission Types (for dropdowns)
+GET {{baseUrl}}/vehicle-specifications/transmission-types
+
+### Get Manufacturers (for dropdowns)
+GET {{baseUrl}}/vehicle-specifications/manufacturers
+
+### Get Models by Manufacturer
+GET {{baseUrl}}/vehicle-specifications/manufacturers/Toyota/models
+
+### Bulk Create Vehicle Specifications (Admin only)
+POST {{baseUrl}}/vehicle-specifications/bulk
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "specifications": [
+    {
+      "manufacturer": "Hyundai",
+      "model": "Elantra",
+      "year": 2023,
+      "fuel_type": "petrol",
+      "engine_capacity": "2.0L",
+      "transmission": "automatic",
+      "seating_capacity": 5,
+      "color": "Silver",
+      "features": "Air Conditioning, Bluetooth, Safety Features",
+      "vehicle_category": "four_wheeler"
+    },
+    {
+      "manufacturer": "Suzuki",
+      "model": "Swift",
+      "year": 2022,
+      "fuel_type": "petrol",
+      "engine_capacity": "1.2L",
+      "transmission": "manual",
+      "seating_capacity": 5,
+      "color": "Red",
+      "features": "Fuel Efficient, Compact Design, Power Steering",
+      "vehicle_category": "four_wheeler"
+    }
+  ]
+}
+### ==============================================
+### VEHICLE MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Get All Vehicles (Public with filters)
+# Supports comprehensive filtering, pagination, and sorting
+# Query parameters explained:
+# - page, limit: Pagination controls
+# - manufacturer, model: Filter by vehicle specification details
+# - fuel_type: petrol, diesel, electric, hybrid
+# - transmission: manual, automatic, cvt
+# - seating_capacity: Number of seats
+# - availability: true/false
+# - min_rate, max_rate: Price range filters
+# - location_id: Filter by pickup location
+# - sortBy: rental_rate, created_at, manufacturer, model
+# - sortOrder: asc, desc
+GET {{baseUrl}}/vehicles?page=1&limit=10&manufacturer=Tesla&model=Model 3&fuel_type=electric&transmission=automatic&seating_capacity=5&availability=true&min_rate=50&max_rate=12100&sortBy=rental_rate&sortOrder=asc
+
+### Get All Vehicles - Simple Example
+GET {{baseUrl}}/vehicles
+
+### Get All Vehicles - Price Filter
+GET {{baseUrl}}/vehicles?availability=true&min_rate=25&max_rate=150&sortBy=rental_rate&sortOrder=asc
+
+### Get Vehicle by ID (Public)
+GET {{baseUrl}}/vehicles/{{vehicleId}}
+
+### Get Vehicle by ID with Images (Enhanced)
+GET {{baseUrl}}/vehicles/{{vehicleId}}/with-images
+
+### Get All Vehicles with Images (Enhanced)
+GET {{baseUrl}}/vehicles/with-images?page=1&limit=10&availability=true&sortBy=rental_rate&sortOrder=asc
+
+### Search Vehicles (Public)
+# Search across multiple fields including vehicle specs
+GET {{baseUrl}}/vehicles/search?q=toyota&limit=10
+
+### Check Vehicle Availability (Public)
+GET {{baseUrl}}/vehicles/{{vehicleId}}/availability?start_date=2025-07-10&end_date=2025-07-15
+
+### Get Available Vehicles (Public)
+# Returns only vehicles available for a specific date range
+GET {{baseUrl}}/vehicles/available?start_date=2025-07-10&end_date=2025-07-15&location_id={{locationId}}
+
+### Get Vehicle Statistics (Admin only)
+GET {{baseUrl}}/vehicles/statistics
+Authorization: Bearer {{adminToken}}
+
+### Create Vehicle (Admin only)
+POST {{baseUrl}}/vehicles
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleSpec_id": "{{specId}}",
+  "rental_rate": "75.00",
+  "availability": true,
+  "license_plate": "KCB123A",
+  "location_id": "{{locationId}}",
+  "status": "available",
+  "mileage": 15000,
+  "fuel_level": 100,
+  "condition_rating": 9,
+  "is_damaged": false,
+  "images": ["https://example.com/car1.jpg", "https://example.com/car2.jpg"],
+  "notes": "Recently serviced and in excellent condition"
+}
+
+### Create Vehicle - Minimal Example
+POST {{baseUrl}}/vehicles
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleSpec_id": "{{specId}}",
+  "rental_rate": "75.00",
+  "license_plate": "KBY456B"
+}
+
+### Batch Import Vehicles (Admin only)
+POST {{baseUrl}}/vehicles/batch
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicles": [
+    {
+      "vehicleSpec_id": "{{specId}}",
+      "rental_rate": "65.00",
+      "license_plate": "KDA789C",
+      "location_id": "{{locationId}}"
+    },
+    {
+      "vehicleSpec_id": "{{specId}}",
+      "rental_rate": "70.00",
+      "license_plate": "KDB123D",
+      "location_id": "{{locationId}}"
+    }
+  ]
+}
+
+### Update Vehicle (Admin only)
+PUT {{baseUrl}}/vehicles/{{vehicleId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "rental_rate": "80.00",
+  "availability": false,
+  "status": "maintenance",
+  "mileage": 16500,
+  "location_id": "{{locationId}}",
+  "fuel_level": 75,
+  "condition_rating": 8,
+  "notes": "Vehicle scheduled for routine maintenance"
+}
+
+### Update Vehicle Availability (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/availability
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "availability": true
+}
+
+### Update Vehicle Status (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "available"
+}
+
+### Update Vehicle Condition (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/condition
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "condition_rating": 4,
+  "is_damaged": false,
+  "damage_description": null
+}
+
+### Update Vehicle Fuel Level (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/fuel
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "fuel_level": 85
+}
+
+### Update Vehicle Mileage (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/mileage
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "mileage": 18500
+}
+
+### Mark Vehicle as Cleaned (Admin only)
+PATCH {{baseUrl}}/vehicles/{{vehicleId}}/clean
+Authorization: Bearer {{adminToken}}
+
+### Add Vehicle Maintenance Record (Admin only)
+POST {{baseUrl}}/vehicles/{{vehicleId}}/maintenance
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "maintenance_type": "routine",
+  "maintenance_date": "2025-06-01T10:00:00.000Z",
+  "description": "Regular service - oil change, filters",
+  "cost": "150.00",
+  "service_provider": "AutoCare Services",
+  "technician_name": "John Doe",
+  "parts_replaced": "Engine oil, Air filter, Oil filter",
+  "mileage_at_service": 18500,
+  "next_service_mileage": 23500,
+  "notes": "Next service due at 23,500 km"
+}
+
+### Get Vehicle Maintenance History (Admin only)
+GET {{baseUrl}}/vehicles/{{vehicleId}}/maintenance
+Authorization: Bearer {{adminToken}}
+
+### Update Vehicle Maintenance Record (Admin only)
+PUT {{baseUrl}}/vehicles/{{vehicleId}}/maintenance/{{maintenanceId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "completion_status": "completed",
+  "cost": "175.00",
+  "notes": "Service completed successfully"
+}
+
+### Delete Vehicle Maintenance Record (Admin only)
+DELETE {{baseUrl}}/vehicles/{{vehicleId}}/maintenance/{{maintenanceId}}
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### MAINTENANCE MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Get Maintenance Statistics (Admin Dashboard)
+GET {{baseUrl}}/maintenance/statistics
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Statistics with Date Range
+GET {{baseUrl}}/maintenance/statistics?start_date=2025-01-01&end_date=2025-12-31
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Statistics for Specific Vehicle
+GET {{baseUrl}}/maintenance/statistics?vehicle_id={{vehicleId}}
+Authorization: Bearer {{adminToken}}
+
+### Get All Maintenance Records (Admin only)
+GET {{baseUrl}}/maintenance
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Records with Pagination
+GET {{baseUrl}}/maintenance?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Records with Filters
+GET {{baseUrl}}/maintenance?maintenance_type=routine&status=completed&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Records with Date Range Filter
+GET {{baseUrl}}/maintenance?date_from=2025-01-01&date_to=2025-12-31&sortBy=maintenance_date&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Get Maintenance Records with Cost Range Filter
+GET {{baseUrl}}/maintenance?cost_min=100&cost_max=500&sortBy=cost&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Get Vehicle-Specific Maintenance Records (Primary Frontend Use Case)
+GET {{baseUrl}}/maintenance/vehicle/{{vehicleId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Vehicle-Specific Maintenance with Pagination
+GET {{baseUrl}}/maintenance/vehicle/{{vehicleId}}?page=1&limit=5
+Authorization: Bearer {{adminToken}}
+
+### Get Upcoming Maintenance (Dashboard Widget)
+GET {{baseUrl}}/maintenance/upcoming
+Authorization: Bearer {{adminToken}}
+
+### Get Upcoming Maintenance with Limit
+GET {{baseUrl}}/maintenance/upcoming?limit=5
+Authorization: Bearer {{adminToken}}
+
+### Get Overdue Maintenance (Dashboard Alert)
+GET {{baseUrl}}/maintenance/overdue
+Authorization: Bearer {{adminToken}}
+
+### Get Overdue Maintenance with Limit
+GET {{baseUrl}}/maintenance/overdue?limit=10
+Authorization: Bearer {{adminToken}}
+
+### Create New Maintenance Record (Admin only)
+POST {{baseUrl}}/maintenance
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "maintenance_type": "routine",
+  "title": "Monthly Vehicle Service",
+  "description": "Comprehensive monthly maintenance service",
+  "maintenance_date": "2025-07-20T10:00:00.000Z",
+  "scheduled_date": "2025-07-20T10:00:00.000Z",
+  "status": "scheduled",
+  "cost": "250.00",
+  "service_provider": "AutoCare Services",
+  "technician_name": "John Smith",
+  "parts_replaced": "Engine oil, Air filter, Oil filter, Brake pads",
+  "mileage_at_service": 25000,
+  "next_service_mileage": 30000,
+  "notes": "Vehicle serviced successfully. Next service due at 30,000 km."
+}
+
+### Update Maintenance Record (Admin only)
+PUT {{baseUrl}}/maintenance/{{maintenanceId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "completed",
+  "cost": "275.00",
+  "completion_date": "2025-07-20T14:30:00.000Z",
+  "notes": "Service completed successfully. All systems working properly."
+}
+
+### Delete Maintenance Record (Admin only)
+DELETE {{baseUrl}}/maintenance/{{maintenanceId}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Vehicle (Admin only)
+DELETE {{baseUrl}}/vehicles/{{vehicleId}}
+Authorization: Bearer {{adminToken}}
+
+### Upload Vehicle Images via URL (Admin only)
+# Using JSON API to add images via URL
+POST {{baseUrl}}/vehicles/{{vehicleId}}/images
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "url": "https://example.com/vehicle-image.jpg",
+  "alt": "Vehicle image",
+  "caption": "Vehicle photo",
+  "is_primary": false,
+  "is_360": false,
+  "display_order": 1
+}
+
+### Upload Vehicle Images via File Upload (Admin only)
+# Note: This would typically use multipart/form-data for file uploads
+# For REST Client, use a boundary (example below)
+POST {{baseUrl}}/vehicles/{{vehicleId}}/images/upload
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+Authorization: Bearer {{adminToken}}
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="images"; filename="car1.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### ==============================================
+### ==============================================
+### VEHICLE IMAGE MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Get All Images for a Vehicle (Public)
+GET {{baseUrl}}/vehicles/{{vehicleId}}/images
+
+### Add New Image to Vehicle (Admin only)
+POST {{baseUrl}}/vehicles/{{vehicleId}}/images
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "url": "https://example.com/vehicle-image.jpg",
+  "alt": "Vehicle front view",
+  "caption": "Front view of the vehicle",
+  "is_primary": false,
+  "is_360": false,
+  "display_order": 1,
+  "cloudinary_public_id": "vehicle_images/vehicle_123/image_456",
+  "file_size": 1024000,
+  "mime_type": "image/jpeg"
+}
+
+### =============================================================================
+### CLOUDINARY IMAGE UPLOAD ENDPOINTS
+### =============================================================================
+
+### Get Upload Signature for Cloudinary (Admin only)
+POST {{baseUrl}}/vehicle-images/upload-signature
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleId": "{{vehicleId}}",
+  "is360": false
+}
+
+### Get Upload Signature for 360° Image (Admin only)
+POST {{baseUrl}}/vehicle-images/upload-signature
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleId": "{{vehicleId}}",
+  "is360": true
+}
+
+### Confirm Cloudinary Upload (Admin only)
+POST {{baseUrl}}/vehicle-images/upload-confirm
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleId": "{{vehicleId}}",
+  "cloudinary_public_id": "vehicle_images/de7ddad4-d801-45ca-8066-a326d6dc6226/image_abc123",
+  "secure_url": "https://res.cloudinary.com/djkqoalj0/image/upload/v1234567890/vehicle_images/de7ddad4-d801-45ca-8066-a326d6dc6226/image_abc123.jpg",
+  "width": 1920,
+  "height": 1080,
+  "format": "jpg",
+  "bytes": 245760,
+  "is_primary": false,
+  "is_360": false,
+  "alt": "Vehicle exterior view",
+  "caption": "Beautiful exterior shot of the vehicle",
+  "display_order": 1
+}
+
+### Confirm 360° Image Upload (Admin only)
+POST {{baseUrl}}/vehicle-images/upload-confirm
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "vehicleId": "{{vehicleId}}",
+  "cloudinary_public_id": "vehicle_images/de7ddad4-d801-45ca-8066-a326d6dc6226/360/panorama_xyz789",
+  "secure_url": "https://res.cloudinary.com/djkqoalj0/image/upload/v1234567890/vehicle_images/de7ddad4-d801-45ca-8066-a326d6dc6226/360/panorama_xyz789.jpg",
+  "width": 2048,
+  "height": 1024,
+  "format": "jpg",
+  "bytes": 512000,
+  "is_primary": false,
+  "is_360": true,
+  "alt": "360° interior view",
+  "caption": "Complete 360° view of vehicle interior",
+  "display_order": 1
+}
+
+### Get 360° Images for Vehicle (Public)
+GET {{baseUrl}}/vehicles/{{vehicleId}}/images/360
+
+### =============================================================================
+### UPDATED VEHICLE IMAGE MANAGEMENT ENDPOINTS
+### =============================================================================
+
+### Update Vehicle Image (Admin only)
+PUT {{baseUrl}}/images/{{imageId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "url": "https://res.cloudinary.com/djkqoalj0/image/upload/v1234567890/vehicle_images/updated_image.jpg",
+  "alt": "Updated vehicle image",
+  "caption": "Updated caption",
+  "is_primary": false,
+  "is_360": false,
+  "display_order": 2,
+  "cloudinary_public_id": "vehicle_images/de7ddad4-d801-45ca-8066-a326d6dc6226/updated_image",
+  "file_size": 2048000,
+  "mime_type": "image/jpeg"
+}
+PUT {{baseUrl}}/images/{{imageId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "url": "https://example.com/updated-vehicle-image.jpg",
+  "alt": "Updated alt text",
+  "caption": "Updated caption",
+  "is_primary": true,
+  "is_360": false,
+  "display_order": 0
+}
+
+### Delete Vehicle Image (Admin only)
+DELETE {{baseUrl}}/images/{{imageId}}
+Authorization: Bearer {{adminToken}}
+
+### Set Primary Image for Vehicle (Admin only)
+PUT {{baseUrl}}/vehicles/{{vehicleId}}/images/{{imageId}}/primary
+Authorization: Bearer {{adminToken}}
+
+### Reorder Vehicle Images (Admin only)
+PUT {{baseUrl}}/vehicles/{{vehicleId}}/images/reorder
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "imageOrders": [
+    {
+      "imageId": "{{imageId}}",
+      "order": 0
+    },
+    {
+      "imageId": "550e8400-e29b-41d4-a716-446655440009", 
+      "order": 1
+    },
+    {
+      "imageId": "550e8400-e29b-41d4-a716-446655440010",
+      "order": 2
+    }
+  ]
+}
+
+### ==============================================
+### BOOKING MANAGEMENT ENDPOINTS
+### ==============================================
+
+# Public endpoints (no authentication required)
+
+### Check Vehicle Availability (Public)
+GET {{baseUrl}}/bookings/check-availability?vehicle_id={{vehicleId}}&booking_date_from=2025-07-25T10:00:00.000Z&booking_date_to=2025-07-26T10:00:00.000Z&location_id={{locationId}}
+
+# User authentication required for all endpoints below
+
+### Create Booking (User) ✅ WORKING
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-25T10:00:00.000Z",
+  "return_date": "2025-07-26T10:00:00.000Z",
+  "special_requests": "Please ensure the vehicle is clean and fueled"
+}
+
+### Create Booking - Alternative Example with Minimal Data
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-28T10:00:00.000Z",
+  "return_date": "2025-07-29T10:00:00.000Z"
+}
+
+### Get My Bookings (User) ✅ WORKING
+GET {{baseUrl}}/bookings/my-bookings?page=1&limit=10&booking_status=pending&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{userToken}}
+
+### Get My Bookings - With All Filter Options
+GET {{baseUrl}}/bookings/my-bookings?page=1&limit=5&booking_status=confirmed&sortBy=booking_date&sortOrder=asc
+Authorization: Bearer {{userToken}}
+
+### Get Booking by ID (User/Admin) ✅ WORKING
+GET {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{userToken}}
+
+### Update Booking (User) ✅ WORKING
+PUT {{baseUrl}}/bookings/{{bookingId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "return_date": "2025-07-27T10:00:00.000Z",
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "special_requests": "Updated: Please ensure full tank of fuel"
+}
+
+### Update Booking - Partial Update Example
+PUT {{baseUrl}}/bookings/{{bookingId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "return_date": "2025-07-30T10:00:00.000Z",
+  "special_requests": "Extended rental period requested"
+}
+
+### Cancel Booking (User) ✅ WORKING
+PATCH {{baseUrl}}/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{userToken}}
+
+### Cancel Booking with Reason
+PATCH {{baseUrl}}/bookings/{{bookingId}}/cancel
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "cancellation_reason": "Change of travel plans due to emergency"
+}
+
+### Get My Bookings (User)
+GET {{baseUrl}}/bookings/my-bookings?page=1&limit=10&booking_status=confirmed&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{userToken}}
+
+### Get Booking by ID (User/Admin)
+GET {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{userToken}}
+
+### Update Booking (User)
+PUT {{baseUrl}}/bookings/{{bookingId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "return_date": "2025-07-16T10:00:00.000Z",
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}"
+}
+
+### Cancel Booking (User)
+PATCH {{baseUrl}}/bookings/{{bookingId}}/cancel
+Authorization: Bearer {{userToken}}
+
+# Admin only endpoints
+
+### Get All Bookings (Admin only) ✅ WORKING
+GET {{baseUrl}}/bookings?page=1&limit=10&booking_status=pending&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Get All Bookings - Advanced Filtering Example
+GET {{baseUrl}}/bookings?page=1&limit=20&search=caleb&booking_status=confirmed&vehicle_id={{vehicleId}}&user_id={{userId}}&location_id={{locationId}}&date_from=2025-07-01&date_to=2025-07-31&min_amount=50&max_amount=500&sortBy=booking_date&sortOrder=asc
+Authorization: Bearer {{adminToken}}
+
+### Get All Bookings - Simple Filter by Status
+GET {{baseUrl}}/bookings?booking_status=completed&limit=50
+Authorization: Bearer {{adminToken}}
+
+### Admin Update Booking (Admin only) ✅ WORKING
+PUT {{baseUrl}}/bookings/admin/{{bookingId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "booking_status": "confirmed",
+  "total_amount": "200.00",
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-25T10:00:00.000Z",
+  "return_date": "2025-07-26T10:00:00.000Z",
+  "special_requests": "Admin updated: Priority booking"
+}
+
+### Admin Update Booking - Status Only
+PUT {{baseUrl}}/bookings/admin/{{bookingId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "booking_status": "completed",
+  "total_amount": "150.00"
+}
+
+### Delete Booking (Admin only) ⚠️ USE WITH CAUTION
+DELETE {{baseUrl}}/bookings/{{bookingId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Booking Statistics (Admin only) ✅ WORKING
+GET {{baseUrl}}/bookings/admin/statistics
+Authorization: Bearer {{adminToken}}
+
+### Get Booking Statistics - Date Range Filter
+GET {{baseUrl}}/bookings/admin/statistics?start_date=2025-01-01&end_date=2025-12-31
+Authorization: Bearer {{adminToken}}
+
+### Get Upcoming Bookings (Admin only) ✅ WORKING
+GET {{baseUrl}}/bookings/admin/upcoming?limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Upcoming Bookings - More Results
+GET {{baseUrl}}/bookings/admin/upcoming?limit=25
+Authorization: Bearer {{adminToken}}
+
+### Confirm Booking (Admin only) ✅ WORKING
+PATCH {{baseUrl}}/bookings/{{bookingId}}/confirm
+Authorization: Bearer {{adminToken}}
+
+### Complete Booking (Admin only) ✅ WORKING
+PATCH {{baseUrl}}/bookings/{{bookingId}}/complete
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### BOOKING EXTENDED ENDPOINTS (NEW)
+### ==============================================
+
+### Extend Booking Return Date (User/Admin)
+PATCH {{baseUrl}}/bookings/{{bookingId}}/extend
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "new_return_date": "2025-07-28T10:00:00.000Z"
+}
+
+### Check Multiple Vehicle Availability (Public)
+POST {{baseUrl}}/bookings/check-availability/bulk
+Content-Type: application/json
+
+{
+  "vehicle_ids": ["{{vehicleId}}", "01b93ad4-ef07-47ac-892e-a2fb3a4dc589"],
+  "booking_date_from": "2025-07-25T10:00:00.000Z",
+  "booking_date_to": "2025-07-26T10:00:00.000Z",
+  "location_id": "{{locationId}}"
+}
+
+### ==============================================
+### PAYMENT MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Create New Payment
+POST {{baseUrl}}/payments
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "booking_id": "{{bookingId}}",
+  "amount": "5000.00",
+  "payment_method": "stripe"
+}
+
+### Get All Payments (Admin only)
+GET {{baseUrl}}/payments?page=1&limit=10&payment_status=completed&payment_method=stripe&booking_id={{bookingId}}&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Get User Payments
+GET {{baseUrl}}/payments/user/{{userId}}?page=1&limit=10&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{userToken}}
+
+### Get Payment by ID (Admin only)
+GET {{baseUrl}}/payments/{{paymentId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Payments by Booking ID
+GET {{baseUrl}}/payments/booking/{{bookingId}}
+Authorization: Bearer {{userToken}}
+
+### Process Payment for Booking
+POST {{baseUrl}}/payments/process
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "booking_id": "{{bookingId}}",
+  "amount": "5000.00",
+  "payment_method": "stripe",
+  "transaction_data": {
+    "card_token": "stripe_card_token_here"
+  }
+}
+
+### Update Payment (Admin only)
+PUT {{baseUrl}}/payments/{{paymentId}}
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "payment_status": "completed",
+  "transaction_id": "txn_stripe_123456"
+}
+
+### Refund Payment (Admin only)
+POST {{baseUrl}}/payments/{{paymentId}}/refund
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "refund_amount": "100.00"
+}
+
+### Get Payment Statistics (Admin only)
+GET {{baseUrl}}/payments/statistics
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### BOOKING VALIDATION & ERROR EXAMPLES
+### ==============================================
+
+### ❌ Create Booking - Invalid UUID (Should Fail)
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "vehicle_id": "invalid-uuid",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-25T10:00:00.000Z",
+  "return_date": "2025-07-26T10:00:00.000Z"
+}
+
+### ❌ Create Booking - Return Date Before Booking Date (Should Fail)
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-26T10:00:00.000Z",
+  "return_date": "2025-07-25T10:00:00.000Z"
+}
+
+### ❌ Create Booking - Missing Required Fields (Should Fail)
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "booking_date": "2025-07-25T10:00:00.000Z"
+}
+
+### ❌ Create Booking - Without Authentication (Should Fail)
+POST {{baseUrl}}/bookings
+Content-Type: application/json
+
+{
+  "vehicle_id": "{{vehicleId}}",
+  "location_id": "{{locationId}}",
+  "booking_date": "2025-07-25T10:00:00.000Z",
+  "return_date": "2025-07-26T10:00:00.000Z"
+}
+
+### ❌ Access Admin Endpoint as User (Should Fail if user token)
+GET {{baseUrl}}/bookings/admin/statistics
+Authorization: Bearer {{userToken}}
+
+### ❌ Get Non-Existent Booking (Should Fail)
+GET {{baseUrl}}/bookings/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{userToken}}
+
+### ==============================================
+### AUTHENTICATION & TOKEN REFRESH
+### ==============================================
+
+### Get Fresh Authentication Token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "calebogeto1@gmail.com",
+  "password": "calebogeto1"
+}
+
+### Get Pending Payments (Admin only)
+GET {{baseUrl}}/payments/pending
+Authorization: Bearer {{adminToken}}
+
+### Get Payments with Details (Admin only) - Enhanced
+GET {{baseUrl}}/payments/with-details
+Authorization: Bearer {{adminToken}}
+
+### Get Payments with Details - Filtered (Admin only) - Enhanced
+GET {{baseUrl}}/payments/with-details?user_id={{userId}}&payment_status=completed&payment_method=stripe&booking_id={{bookingId}}
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### SUPPORT TICKET MANAGEMENT ENDPOINTS
+### ==============================================
+
+### Create Support Ticket (User)
+POST {{baseUrl}}/support-tickets
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "subject": "Vehicle breakdown issue",
+  "description": "The vehicle I rented has a mechanical issue and won't start",
+  "category": "technical",
+  "priority": "high",
+  "attachments": []
+}
+
+### Get All Support Tickets (User sees own, Admin sees all)
+GET {{baseUrl}}/support-tickets?page=1&limit=10&status=open&priority=high&category=technical&sortBy=created_at&sortOrder=desc
+Authorization: Bearer {{userToken}}
+
+### Get My Support Tickets (User)
+GET {{baseUrl}}/support-tickets?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### Get Support Ticket by ID (User/Admin)
+GET {{baseUrl}}/support-tickets/{{ticketId}}
+Authorization: Bearer {{userToken}}
+
+### Update Support Ticket (User - limited fields, Admin - all fields)
+PUT {{baseUrl}}/support-tickets/{{ticketId}}
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "subject": "Updated: Vehicle breakdown issue",
+  "description": "Additional details: The engine makes strange noises before stopping",
+  "priority": "urgent"
+}
+
+### Update Ticket Status (User/Admin)
+PATCH {{baseUrl}}/support-tickets/{{ticketId}}/status
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "status": "in_progress"
+}
+
+### Get Ticket Statistics (User gets own stats, Admin gets all stats)
+GET {{baseUrl}}/support-tickets/statistics
+Authorization: Bearer {{userToken}}
+
+### Get Ticket Categories (Public)
+GET {{baseUrl}}/support-tickets/categories
+
+### Get Ticket Priorities (Public)
+GET {{baseUrl}}/support-tickets/priorities
+
+### Get Ticket Statuses (Public)
+GET {{baseUrl}}/support-tickets/statuses
+
+### ==============================================
+### ADMIN/AGENT SUPPORT TICKET ENDPOINTS
+### ==============================================
+
+### Get Tickets Assigned to Me (Admin/Agent)
+GET {{baseUrl}}/support-tickets/assigned/me?page=1&limit=10&sortBy=updated_at&sortOrder=desc
+Authorization: Bearer {{adminToken}}
+
+### Get Available Support Agents (Admin/Agent)
+GET {{baseUrl}}/support-tickets/agents/available
+Authorization: Bearer {{adminToken}}
+
+### Assign Ticket to Agent (Admin/Agent)
+PATCH {{baseUrl}}/support-tickets/{{ticketId}}/assign
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "assigned_to": "agent1"
+}
+
+### Bulk Update Ticket Status (Admin)
+PATCH {{baseUrl}}/support-tickets/bulk/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "ticket_ids": ["{{ticketId}}", "another-ticket-id"],
+  "status": "resolved"
+}
+
+### Delete Support Ticket (Admin only)
+DELETE {{baseUrl}}/support-tickets/{{ticketId}}
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### CHAT SYSTEM ENDPOINTS
+### ==============================================
+
+# Chat System Variables
+@chatTicketId = 8c95f916-0d0c-4e8e-b798-debc66af766e
+@messageId = 550e8400-e29b-41d4-a716-446655440009
+
+### Get Chat Messages for a Ticket (User/Support/Admin)
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages?page=1&limit=50
+Authorization: Bearer {{userToken}}
+
+### Get Chat Messages - Page 2
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages?page=2&limit=25
+Authorization: Bearer {{userToken}}
+
+### Get Chat Messages - Recent Only
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### Send Chat Message (User/Support/Admin)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Hello! I need help with my booking issue.",
+  "messageType": "text"
+}
+
+### Send Chat Message - With File Attachment
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Here's the screenshot of the error I'm experiencing.",
+  "messageType": "image",
+  "attachmentUrl": "https://example.com/screenshot.png"
+}
+
+### Send Chat Message - Admin Response
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Thank you for contacting support. I'll help you resolve this issue right away.",
+  "messageType": "text"
+}
+
+### Send Chat Message - Support Agent Response
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "I've reviewed your booking details. Let me process a refund for you.",
+  "messageType": "text"
+}
+
+### Mark Messages as Read (User/Support/Admin)
+PUT {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages/read
+Authorization: Bearer {{userToken}}
+
+### Mark Messages as Read - Support Agent
+PUT {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages/read
+Authorization: Bearer {{adminToken}}
+
+### Get Chat Statistics for Ticket (User/Support/Admin)
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{userToken}}
+
+### Get Chat Statistics - Admin View
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{adminToken}}
+
+### Get Active Chats (Support/Admin Only)
+GET {{baseUrl}}/chat/active?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get Active Chats - With Filters
+GET {{baseUrl}}/chat/active?page=1&limit=10&unread=true
+Authorization: Bearer {{adminToken}}
+
+### Get Active Chats - Assigned to Me (Support Agent)
+GET {{baseUrl}}/chat/active?assigned_to={{userId}}&page=1&limit=15
+Authorization: Bearer {{adminToken}}
+
+### Start Typing Indicator (User/Support/Admin)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/start
+Authorization: Bearer {{userToken}}
+
+### Stop Typing Indicator (User/Support/Admin)  
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/stop
+Authorization: Bearer {{userToken}}
+
+### Start Typing Indicator - Support Agent
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/start
+Authorization: Bearer {{adminToken}}
+
+### Stop Typing Indicator - Support Agent
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/stop
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### CHAT SYSTEM - USER DASHBOARD SCENARIOS
+### ==============================================
+
+### Scenario 1: User Creates Ticket and Starts Chat
+# Step 1: Create a support ticket first
+POST {{baseUrl}}/support-tickets
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "subject": "Chat API Test - Payment Issue",
+  "description": "I'm having trouble with my payment processing.",
+  "category": "billing",
+  "priority": "medium"
+}
+
+### Step 2: Send Initial Message (Replace ticketId from Step 1 response)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Hi, I created this ticket because my payment was charged twice for the same booking.",
+  "messageType": "text"
+}
+
+### Step 3: Check Chat Statistics
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{userToken}}
+
+### ==============================================
+### CHAT SYSTEM - SUPPORT AGENT SCENARIOS
+### ==============================================
+
+### Scenario 2: Support Agent Responds to User
+# Step 1: Agent views active chats
+GET {{baseUrl}}/chat/active?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Step 2: Agent responds to user's message
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Hello! I understand you're experiencing a double charge issue. Let me investigate this for you right away.",
+  "messageType": "text"
+}
+
+### Step 3: Agent starts typing to show they're working
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/start
+Authorization: Bearer {{adminToken}}
+
+### Step 4: Agent sends follow-up message
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "I've found the duplicate charge in our system. I'm processing a refund for you now. You should see it in 3-5 business days.",
+  "messageType": "text"
+}
+
+### Step 5: Agent stops typing
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/typing/stop
+Authorization: Bearer {{adminToken}}
+
+### Step 6: Agent marks messages as read
+PUT {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages/read
+Authorization: Bearer {{adminToken}}
+
+### ==============================================
+### CHAT SYSTEM - ADMIN DASHBOARD SCENARIOS
+### ==============================================
+
+### Scenario 3: Admin Monitoring All Chats
+# Step 1: Admin gets overview of all active chats
+GET {{baseUrl}}/chat/active?page=1&limit=50
+Authorization: Bearer {{adminToken}}
+
+### Step 2: Admin checks chat statistics for specific ticket
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{adminToken}}
+
+### Step 3: Admin joins conversation if needed
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Hi there! I'm stepping in to ensure you receive the best possible service. The refund has been expedited and should appear in your account within 24 hours.",
+  "messageType": "text"
+}
+
+### ==============================================
+### CHAT SYSTEM - ERROR SCENARIOS
+### ==============================================
+
+### ❌ Send Message to Non-Existent Ticket (Should Fail)
+POST {{baseUrl}}/chat/tickets/00000000-0000-0000-0000-000000000000/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "This should fail",
+  "messageType": "text"
+}
+
+### ❌ Send Message Without Authentication (Should Fail)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+
+{
+  "message": "This should fail - no auth token",
+  "messageType": "text"
+}
+
+### ❌ Send Empty Message (Should Fail)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "",
+  "messageType": "text"
+}
+
+### ❌ Access Another User's Ticket Chat (Should Fail if different user)
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Authorization: Bearer {{userToken}}
+
+### ❌ Access Active Chats as Regular User (Should Fail)
+GET {{baseUrl}}/chat/active
+Authorization: Bearer {{userToken}}
+
+### ==============================================
+### CHAT SYSTEM - BULK OPERATIONS
+### ==============================================
+
+### Get Multiple Ticket Statistics (Admin Only)
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{adminToken}}
+
+### Send Multiple Messages Test (Admin)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Message 1: Thank you for your patience.",
+  "messageType": "text"
+}
+
+###
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Message 2: I've escalated your case to our senior team.",
+  "messageType": "text"
+}
+
+###
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Message 3: You should receive a resolution within the next hour.",
+  "messageType": "text"
+}
+
+### ==============================================
+### CHAT SYSTEM - WEBSOCKET CONNECTION TESTING
+### ==============================================
+
+### Note: WebSocket connections cannot be tested via HTTP client
+### Use the following for WebSocket testing in browser console:
+
+# WebSocket Connection Example (Copy to browser console):
+# const socket = io('ws://localhost:7000', {
+#   query: { token: 'your_jwt_token_here' }
+# });
+# 
+# socket.on('connect', () => console.log('Connected to chat server'));
+# socket.emit('join', { room: 'ticket:your-ticket-id' });
+# 
+# socket.on('message:new', (data) => console.log('New message:', data));
+# socket.on('user:typing', (data) => console.log('User typing:', data));
+# socket.on('user:stop_typing', (data) => console.log('User stopped typing:', data));
+
+### ==============================================
+### CHAT SYSTEM - INTEGRATION TESTING
+### ==============================================
+
+### Full Chat Flow Test - Create Ticket → Chat → Resolve
+# Step 1: Create ticket
+POST {{baseUrl}}/support-tickets
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "subject": "Full Chat Flow Test",
+  "description": "Testing the complete chat integration flow",
+  "category": "technical",
+  "priority": "medium"
+}
+
+### Step 2: User sends initial message (replace ticketId from Step 1)
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Hello, I'm testing the new chat system. It looks great!",
+  "messageType": "text"
+}
+
+### Step 3: Admin/Support responds
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "message": "Thank you for testing! The chat system is working perfectly. How can I help you today?",
+  "messageType": "text"
+}
+
+### Step 4: User responds back
+POST {{baseUrl}}/chat/tickets/{{chatTicketId}}/messages
+Content-Type: application/json
+Authorization: Bearer {{userToken}}
+
+{
+  "message": "Everything is working great! This chat feature will be very helpful for customer support.",
+  "messageType": "text"
+}
+
+### Step 5: Check final chat statistics
+GET {{baseUrl}}/chat/tickets/{{chatTicketId}}/stats
+Authorization: Bearer {{adminToken}}
+
+### Step 6: Mark conversation as resolved
+PATCH {{baseUrl}}/support-tickets/{{chatTicketId}}/status
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "status": "resolved"
+}
+

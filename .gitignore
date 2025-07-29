@@ -1,0 +1,240 @@
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Build outputs
+dist/
+build/
+out/
+*.tsbuildinfo
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.staging
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+*.lcov
+.nyc_output/
+
+# Testing
+.jest/
+jest.config.js.map
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Optional stylelint cache
+.stylelintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.cache
+.parcel-cache
+
+# Next.js build output
+.next
+
+# Nuxt.js build / generate output
+.nuxt
+
+# Gatsby files
+.cache/
+public
+
+# Vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless/
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# yarn v2
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# IDEs and editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Application specific
+uploads/
+temp/
+tmp/
+.cache/
+
+# SSL certificates (if any)
+*.pem
+*.key
+*.crt
+*.cert
+
+# Redis dump
+dump.rdb
+
+# Package manager lock files (keep pnpm-lock.yaml but ignore others)
+package-lock.json
+yarn.lock
+
+# Backup files
+*.bak
+*.backup
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Local configuration files
+config.local.js
+config.local.json
+
+# Docker
+.dockerignore
+
+# Vercel
+.vercel
+
+# Sentry
+.sentryclirc
+
+# Project-specific files that should not be committed
+Redis-x64-3.0.504.msi
+NUL
+tsx
+backendcalebogetovehiclerentingmgtsys@1.0.0
+
+# HTTP test files (keep client.http for API documentation)
+# client.http  # Commented out - this should be kept for API testing
+
+# Summary and documentation files (you might want to keep these)
+# Uncomment any of these if you don't want them in your repo:
+# BACKEND_IMPLEMENTATION_SUMMARY.md
+# BOOKING_SYSTEM_COMPLETION_SUMMARY.md
+# COMPLETE_IMPLEMENTATION_SUMMARY.md
+# ENDPOINT_IMPLEMENTATION_STATUS.md
+# FINAL_IMPLEMENTATION_SUMMARY.md
+# KENYAN_LOCATIONS_API_IMPLEMENTATION.md
+# LOCATION_CREATION_FEATURE_SUMMARY.md
+# PAYMENT_API_ALIGNMENT_VERIFICATION.md
+# PAYMENT_IMPLEMENTATION_FINAL_SUMMARY.md
+# PAYMENT_IMPLEMENTATION_SUMMARY.md
+# PAYMENT_SETUP_GUIDE.md
+# PAYMENT_SYSTEM_FINAL_SUMMARY.md
+# SECURITY_TESTING_GUIDE.md
+# SUPPORT_TICKET_COMPLETE_IMPLEMENTATION.md
+
+# Installation files
+*.msi
+*.exe
+*.dmg
+*.pkg
+
+# Binary files without extension
+tsx
+NUL
+
+# Markdown files
+*.md
