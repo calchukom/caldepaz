@@ -113,112 +113,113 @@ initializeRedis().catch(err => {
     console.warn("Failed to initialize Redis:", err);
 });
 
-// PRESENTATION MODE ENABLED - Very high limits for smooth demonstrations in ALL environments
-const isPresentationMode = true; // Always true for smooth presentations
+// ULTRA-HIGH RATE LIMITS - 30x INCREASED FOR ALL ENVIRONMENTS
+// Ensuring smooth dashboard operations across development, staging, and production
+const isUltraHighLimitsMode = true; // Always true for maximum smoothness
 
-// Rate limiter configurations for different endpoints and user types
+// Rate limiter configurations - ALL LIMITS MULTIPLIED BY 30x
 const rateLimiterConfigs = {
-    // Authentication endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // Authentication endpoints (30x INCREASED - Ultra smooth login/register)
     auth: {
-        points: 100000, // 100,000 attempts always
+        points: 3000000, // 3,000,000 attempts always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Registration/signup (PRESENTATION FRIENDLY - Very high limits)
+    // Registration/signup (30x INCREASED - Ultra smooth registration)
     registration: {
-        points: 100000, // 100,000 attempts always
+        points: 3000000, // 3,000,000 attempts always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Password reset (PRESENTATION FRIENDLY - Very high limits)
+    // Password reset (30x INCREASED - Ultra smooth password operations)
     passwordReset: {
-        points: 100000, // 100,000 attempts always
+        points: 3000000, // 3,000,000 attempts always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Email verification (PRESENTATION FRIENDLY - Very high limits)
+    // Email verification (30x INCREASED - Ultra smooth email operations)
     emailVerification: {
-        points: 100000, // 100,000 attempts always
+        points: 3000000, // 3,000,000 attempts always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // General API endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // General API endpoints (30x INCREASED - Ultra smooth dashboard API calls)
     api: {
         user: {
-            points: 500000, // 500,000 requests always
+            points: 15000000, // 15,000,000 requests always (30x from 500k)
             duration: 3600, // per hour
-            blockDuration: 1, // block for only 1 second
+            blockDuration: 0.5, // block for only 0.5 seconds
         },
         admin: {
-            points: 1000000, // 1,000,000 requests always
+            points: 30000000, // 30,000,000 requests always (30x from 1M)
             duration: 3600, // per hour
-            blockDuration: 1, // block for only 1 second
+            blockDuration: 0.5, // block for only 0.5 seconds
         },
         guest: {
-            points: 200000, // 200,000 requests always
+            points: 6000000, // 6,000,000 requests always (30x from 200k)
             duration: 3600, // per hour
-            blockDuration: 1, // block for only 1 second
+            blockDuration: 0.5, // block for only 0.5 seconds
         },
     },
 
-    // Booking-related endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // Booking-related endpoints (30x INCREASED - Ultra smooth booking operations)
     bookings: {
-        points: 100000, // 100,000 requests always
+        points: 3000000, // 3,000,000 requests always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Vehicle search and browsing (PRESENTATION FRIENDLY - Very high limits)
+    // Vehicle search and browsing (30x INCREASED - Ultra smooth vehicle browsing)
     vehicleSearch: {
-        points: 200000, // 200,000 requests always
+        points: 6000000, // 6,000,000 requests always (30x from 200k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Payment processing (PRESENTATION FRIENDLY - Very high limits)
+    // Payment processing (30x INCREASED - Ultra smooth payment operations)
     payments: {
-        points: 50000, // 50,000 requests always
+        points: 1500000, // 1,500,000 requests always (30x from 50k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Vehicle management (PRESENTATION FRIENDLY - Very high limits)
+    // Vehicle management (30x INCREASED - Ultra smooth vehicle management)
     vehicleManagement: {
-        points: 100000, // 100,000 requests always
+        points: 3000000, // 3,000,000 requests always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Maintenance operations (PRESENTATION FRIENDLY - Very high limits)
+    // Maintenance operations (30x INCREASED - Ultra smooth maintenance)
     maintenance: {
-        points: 100000, // 100,000 requests always
+        points: 3000000, // 3,000,000 requests always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Search endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // Search endpoints (30x INCREASED - Ultra smooth search operations)
     search: {
-        points: 100000, // 100,000 requests always
+        points: 3000000, // 3,000,000 requests always (30x from 100k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // File upload endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // File upload endpoints (30x INCREASED - Ultra smooth file uploads)
     upload: {
-        points: 10000, // 10,000 uploads always
+        points: 300000, // 300,000 uploads always (30x from 10k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 
-    // Admin creation/invitation endpoints (PRESENTATION FRIENDLY - Very high limits)
+    // Admin creation/invitation endpoints (30x INCREASED - Ultra smooth admin actions)
     adminActions: {
-        points: 10000, // 10,000 admin actions always
+        points: 300000, // 300,000 admin actions always (30x from 10k)
         duration: 3600, // per hour
-        blockDuration: 1, // block for only 1 second
+        blockDuration: 0.5, // block for only 0.5 seconds
     },
 };
 
@@ -323,11 +324,9 @@ const createRateLimiterMiddleware = (
     } = {}
 ) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-        // Skip rate limiting entirely in development if DISABLE_RATE_LIMITING is set
-        if (process.env.NODE_ENV === 'development' && process.env.DISABLE_RATE_LIMITING === 'true') {
-            console.log('Rate limiting disabled for development');
-            return next();
-        }
+        // ULTRA-HIGH LIMITS ALWAYS ENABLED - No environment-based disabling
+        // Ensuring maximum smoothness for dashboard operations in ALL environments
+        console.log('🚀 Ultra-high rate limits enabled for maximum dashboard smoothness');
 
         try {
             const clientId = options.keyGenerator ? options.keyGenerator(req) : getClientId(req);
@@ -410,11 +409,9 @@ export const emailVerificationRateLimiter = createRateLimiterMiddleware(emailVer
 
 // API rate limiter that adapts based on user type
 export const apiRateLimiter = async (req: Request, res: Response, next: NextFunction) => {
-    // Skip rate limiting entirely in development if DISABLE_RATE_LIMITING is set
-    if (process.env.NODE_ENV === 'development' && process.env.DISABLE_RATE_LIMITING === 'true') {
-        console.log('API rate limiting disabled for development');
-        return next();
-    }
+    // ULTRA-HIGH LIMITS ALWAYS ENABLED - No environment-based disabling
+    // Ensuring maximum smoothness for dashboard operations in ALL environments
+    console.log('🚀 Ultra-high API rate limits enabled for maximum dashboard smoothness');
 
     try {
         const userType: UserType = (req.user?.user_type && ['member', 'driver', 'owner', 'admin', 'guest'].includes(req.user.user_type))
@@ -487,36 +484,36 @@ export const adminActionsRateLimiter = createRateLimiterMiddleware(adminActionsL
     customErrorMessage: "Too many admin actions. Please slow down.",
 });
 
-// Aggressive rate limiter for sensitive endpoints (PRESENTATION FRIENDLY)
+// Aggressive rate limiter for sensitive endpoints (30x INCREASED)
 export const strictRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 50000, // 50,000 requests always
+        points: 1500000, // 1,500,000 requests always (30x from 50k)
         duration: 3600, // 1 hour
-        blockDuration: 1, // 1 second block always
+        blockDuration: 0.5, // 0.5 seconds block always
     }, "strict"),
     {
         customErrorMessage: "This endpoint has strict rate limiting. Please try again later.",
     }
 );
 
-// Burst protection for real-time endpoints (PRESENTATION FRIENDLY)
+// Burst protection for real-time endpoints (30x INCREASED)
 export const burstProtectionRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 10000, // 10,000 requests always
+        points: 300000, // 300,000 requests always (30x from 10k)
         duration: 10, // 10 seconds
-        blockDuration: 1, // 1 second block always
+        blockDuration: 0.5, // 0.5 seconds block always
     }, "burst"),
     {
         customErrorMessage: "Too many rapid requests. Please slow down.",
     }
 );
 
-// Rate limiter for webhook endpoints
+// Rate limiter for webhook endpoints (30x INCREASED)
 export const webhookRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 100,
+        points: 3000, // 3,000 webhooks (30x from 100)
         duration: 60, // 1 minute
-        blockDuration: 300, // 5 minutes block
+        blockDuration: 1, // 1 second block
     }, "webhook"),
     {
         customErrorMessage: "Webhook rate limit exceeded.",
@@ -621,10 +618,10 @@ export const resetRateLimit = async (clientId: string, limiterType: string = 'ap
     }
 };
 
-// Vehicle/incident reporting rate limiter (PRESENTATION FRIENDLY)
+// Vehicle/incident reporting rate limiter (30x INCREASED)
 export const reportingRateLimiter = rateLimit({
-    windowMs: 1000, // 1 second always for presentations
-    max: 10000, // 10,000 reports always
+    windowMs: 1000, // 1 second always for ultra-smooth operations
+    max: 300000, // 300,000 reports always (30x from 10k)
     message: {
         error: "Too many incident reports submitted. Please try again later.",
         retryAfter: "1 second",
@@ -644,10 +641,10 @@ export const reportingRateLimiter = rateLimit({
     },
 });
 
-// Vehicle review/feedback creation rate limiter (PRESENTATION FRIENDLY)
+// Vehicle review/feedback creation rate limiter (30x INCREASED)
 export const commentCreationRateLimiter = rateLimit({
-    windowMs: 1000, // 1 second always for presentations
-    max: 10000, // 10,000 reviews always
+    windowMs: 1000, // 1 second always for ultra-smooth operations
+    max: 300000, // 300,000 reviews always (30x from 10k)
     message: {
         error: "Too many reviews created. Please try again later.",
         retryAfter: "1 second",
@@ -775,6 +772,11 @@ export const rateLimiterInfo = {
     configs: rateLimiterConfigs,
     backend: redisClient ? 'redis' : 'memory',
     redisConnected: !!redisClient,
-    systemType: 'vehicle-rental-management',
+    systemType: 'vehicle-rental-management-ultra-high-limits',
     supportedUserTypes: ['customer', 'fleet_manager', 'admin', 'support_agent', 'guest'],
+    mode: 'ULTRA_HIGH_LIMITS_30X',
+    description: 'All rate limits increased by 30x for maximum dashboard smoothness across all environments',
+    limitsMultiplier: 30,
+    blockDuration: '0.5 seconds (ultra-short)',
+    environmentSupport: 'All environments (development, staging, production)',
 };

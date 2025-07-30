@@ -13,6 +13,8 @@
     "push": "drizzle-kit generate && drizzle-kit push",
     "seed": "tsx src/drizzle/seed.ts",
     "seed:comprehensive": "tsx src/drizzle/comprehensive-seed.ts",
+    "seed:vehicles": "tsx src/drizzle/vehicles-focused-seed.ts",
+    "seed:vehicles:force": "tsx src/drizzle/vehicles-focused-seed.ts --clear",
     "seed:force": "tsx src/drizzle/comprehensive-seed.ts --clear",
     "seed:production": "tsx src/drizzle/production-seed.ts",
     "test": "jest",
