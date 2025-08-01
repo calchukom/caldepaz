@@ -42,9 +42,7 @@ export class PaymentService {
             throw new Error('STRIPE_SECRET_KEY is required');
         }
 
-        this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-            apiVersion: '2025-07-30.basil' as any  // Type assertion to bypass version mismatch
-        });
+        this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
         this.mpesaBaseUrl = process.env.MPESA_ENV === 'production'
             ? 'https://api.safaricom.co.ke'
