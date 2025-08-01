@@ -1,6 +1,6 @@
-import { eq, ilike, and, or, desc, asc, count, sql, gte, lte } from 'drizzle-orm';
+import { eq, ilike, and, or, desc, asc, count, sql, gte, lte, isNotNull } from 'drizzle-orm';
 import db from '../drizzle/db';
-import { locations, bookings, type Location, type NewLocation } from '../drizzle/schema';
+import { locations, bookings, vehicles, vehicleSpecifications, type Location, type NewLocation } from '../drizzle/schema';
 import { logger } from '../middleware/logger';
 import { ErrorFactory } from '../middleware/appError';
 
@@ -18,12 +18,28 @@ export interface CreateLocationData {
     name: string;
     address: string;
     contact_phone?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+    email?: string;
+    latitude?: number;
+    longitude?: number;
+    operating_hours?: string;
 }
 
 export interface UpdateLocationData {
     name?: string;
     address?: string;
     contact_phone?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    postal_code?: string;
+    email?: string;
+    latitude?: number;
+    longitude?: number;
+    operating_hours?: string;
 }
 
 export interface LocationStatistics {
@@ -61,7 +77,7 @@ export interface PopularLocation {
 /**
  * Build WHERE conditions for location filtering
  */
-const buildWhereConditions = (filters: LocationFilters) => {
+const buildWhereConditions = (filters: LocationFilters & { country?: string; city?: string }) => {
     const conditions = [];
 
     // Search across name and address
@@ -72,6 +88,16 @@ const buildWhereConditions = (filters: LocationFilters) => {
                 ilike(locations.address, `%${filters.search}%`)
             )
         );
+    }
+
+    // Filter by country if provided
+    if (filters.country) {
+        conditions.push(ilike(locations.country, `%${filters.country}%`));
+    }
+
+    // Filter by city if provided
+    if (filters.city) {
+        conditions.push(ilike(locations.city, `%${filters.city}%`));
     }
 
     return conditions;
@@ -106,7 +132,7 @@ const buildOrderByClause = (sortBy?: string, sortOrder?: 'asc' | 'desc') => {
 export const getAllLocations = async (
     page = 1,
     limit = 10,
-    filters: LocationFilters = {}
+    filters: LocationFilters & { country?: string; city?: string; latitude?: number; longitude?: number; radius?: number } = {}
 ): Promise<{
     locations: Location[];
     pagination: {
@@ -120,6 +146,31 @@ export const getAllLocations = async (
         const offset = (page - 1) * limit;
         const conditions = buildWhereConditions(filters);
         const orderBy = buildOrderByClause(filters.sortBy, filters.sortOrder);
+
+        // Handle geographic filtering if latitude, longitude and radius are provided
+        if (filters.latitude !== undefined && filters.longitude !== undefined && filters.radius !== undefined) {
+            // Ensure latitude and longitude columns exist
+            conditions.push(isNotNull(locations.latitude));
+            conditions.push(isNotNull(locations.longitude));
+
+            // Calculate distance using Haversine formula (approx. distance in km)
+            // Note: This is a simplified version, for more accurate results consider PostGIS
+            const lat = filters.latitude;
+            const lng = filters.longitude;
+            const radius = filters.radius;
+
+            conditions.push(
+                sql`(
+                    6371 * acos(
+                        cos(radians(${lat})) * 
+                        cos(radians(${locations.latitude})) * 
+                        cos(radians(${locations.longitude}) - radians(${lng})) + 
+                        sin(radians(${lat})) * 
+                        sin(radians(${locations.latitude}))
+                    )
+                ) <= ${radius}`
+            );
+        }
 
         const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -198,7 +249,15 @@ export const createLocation = async (data: CreateLocationData): Promise<Location
         const locationData: NewLocation = {
             name: data.name,
             address: data.address,
-            contact_phone: data.contact_phone
+            contact_phone: data.contact_phone,
+            city: data.city,
+            state: data.state,
+            country: data.country,
+            postal_code: data.postal_code,
+            email: data.email,
+            latitude: data.latitude !== undefined ? data.latitude as any : undefined, // Type coercion due to decimal schema
+            longitude: data.longitude !== undefined ? data.longitude as any : undefined, // Type coercion due to decimal schema
+            operating_hours: data.operating_hours
         };
 
         // Insert location
@@ -237,7 +296,7 @@ export const updateLocation = async (locationId: string, data: UpdateLocationDat
                     and(
                         eq(locations.name, checkName),
                         eq(locations.address, checkAddress),
-                        eq(locations.location_id, locationId) // Exclude current location
+                        sql`${locations.location_id} != ${locationId}` // Exclude current location
                     )
                 )
                 .limit(1);
@@ -250,9 +309,17 @@ export const updateLocation = async (locationId: string, data: UpdateLocationDat
         // Prepare update data
         const updateData: Partial<Location> = {};
 
-        if (data.name) updateData.name = data.name;
-        if (data.address) updateData.address = data.address;
+        if (data.name !== undefined) updateData.name = data.name;
+        if (data.address !== undefined) updateData.address = data.address;
         if (data.contact_phone !== undefined) updateData.contact_phone = data.contact_phone;
+        if (data.city !== undefined) updateData.city = data.city;
+        if (data.state !== undefined) updateData.state = data.state;
+        if (data.country !== undefined) updateData.country = data.country;
+        if (data.postal_code !== undefined) updateData.postal_code = data.postal_code;
+        if (data.email !== undefined) updateData.email = data.email;
+        if (data.latitude !== undefined) updateData.latitude = data.latitude as any; // Type coercion due to decimal schema
+        if (data.longitude !== undefined) updateData.longitude = data.longitude as any; // Type coercion due to decimal schema
+        if (data.operating_hours !== undefined) updateData.operating_hours = data.operating_hours;
 
         updateData.updated_at = new Date();
 
@@ -532,6 +599,182 @@ export const createLocationFromPopular = async (
 /**
  * Get location statistics
  */
+/**
+ * Search locations by query string
+ */
+export const searchLocations = async (query: string, limit = 10): Promise<Location[]> => {
+    try {
+        const result = await db
+            .select()
+            .from(locations)
+            .where(
+                or(
+                    ilike(locations.name, `%${query}%`),
+                    ilike(locations.address, `%${query}%`),
+                    ilike(locations.city, `%${query}%`),
+                    ilike(locations.country, `%${query}%`)
+                )
+            )
+            .limit(limit);
+
+        return result;
+    } catch (error) {
+        logger.error('Error searching locations', { module: 'locations', error, query });
+        throw error;
+    }
+};
+
+/**
+ * Get vehicles by location ID
+ */
+export const getVehiclesByLocation = async (
+    locationId: string,
+    page = 1,
+    limit = 10
+): Promise<{
+    vehicles: any[];
+    pagination: {
+        total: number;
+        page: number;
+        limit: number;
+        pages: number;
+    };
+}> => {
+    try {
+        // Check if location exists
+        const location = await getLocationById(locationId);
+        if (!location) {
+            throw ErrorFactory.notFound('Location not found');
+        }
+
+        const offset = (page - 1) * limit;
+
+        // Get total count of vehicles at this location
+        const totalResult = await db
+            .select({ count: count() })
+            .from(vehicles)
+            .where(eq(vehicles.location_id, locationId));
+
+        const total = totalResult[0]?.count ?? 0;
+
+        // Get paginated vehicles with their specifications
+        const result = await db
+            .select({
+                vehicle_id: vehicles.vehicle_id,
+                license_plate: vehicles.license_plate,
+                rental_rate: vehicles.rental_rate,
+                status: vehicles.status,
+                manufacturer: vehicleSpecifications.manufacturer,
+                model: vehicleSpecifications.model,
+                year: vehicleSpecifications.year,
+                fuel_type: vehicleSpecifications.fuel_type,
+                transmission: vehicleSpecifications.transmission,
+                seating_capacity: vehicleSpecifications.seating_capacity,
+                color: vehicleSpecifications.color,
+                features: vehicleSpecifications.features,
+                vehicle_category: vehicleSpecifications.vehicle_category,
+                mileage: vehicles.mileage,
+                fuel_level: vehicles.fuel_level,
+                availability: vehicles.availability,
+                condition_rating: vehicles.condition_rating,
+                created_at: vehicles.created_at,
+                updated_at: vehicles.updated_at
+            })
+            .from(vehicles)
+            .innerJoin(vehicleSpecifications, eq(vehicles.vehicleSpec_id, vehicleSpecifications.vehicleSpec_id))
+            .where(eq(vehicles.location_id, locationId))
+            .limit(limit)
+            .offset(offset);
+
+        return {
+            vehicles: result,
+            pagination: {
+                total,
+                page,
+                limit,
+                pages: Math.ceil(total / limit)
+            }
+        };
+    } catch (error) {
+        logger.error('Error getting vehicles by location', { module: 'locations', error, locationId });
+        throw error;
+    }
+};
+
+/**
+ * Get location availability (vehicles available at the location)
+ */
+export const getLocationAvailability = async (
+    locationId: string,
+    startDate: Date,
+    endDate: Date
+): Promise<{
+    location: Location;
+    available_vehicles: number;
+    total_vehicles: number;
+    availability_percentage: number;
+    date_range: {
+        start_date: Date;
+        end_date: Date;
+    };
+}> => {
+    try {
+        // Check if location exists
+        const location = await getLocationById(locationId);
+        if (!location) {
+            throw ErrorFactory.notFound('Location not found');
+        }
+
+        // Count total vehicles at the location
+        const totalVehiclesResult = await db
+            .select({ count: count() })
+            .from(vehicles)
+            .where(eq(vehicles.location_id, locationId));
+
+        const totalVehicles = totalVehiclesResult[0]?.count ?? 0;
+
+        // Count available vehicles (not in active bookings during the date range)
+        const availableVehiclesResult = await db
+            .select({ count: count() })
+            .from(vehicles)
+            .where(
+                and(
+                    eq(vehicles.location_id, locationId),
+                    eq(vehicles.availability, true),
+                    or(
+                        eq(vehicles.status, 'available'),
+                        eq(vehicles.status, 'reserved')
+                    ),
+                    sql`${vehicles.vehicle_id} NOT IN (
+                        SELECT ${bookings.vehicle_id}
+                        FROM ${bookings}
+                        WHERE ${bookings.booking_status} IN ('confirmed', 'active')
+                        AND (
+                            (${bookings.booking_date} <= ${endDate} AND ${bookings.return_date} >= ${startDate})
+                        )
+                    )`
+                )
+            );
+
+        const availableVehicles = availableVehiclesResult[0]?.count ?? 0;
+        const availabilityPercentage = totalVehicles > 0 ? (availableVehicles / totalVehicles) * 100 : 0;
+
+        return {
+            location,
+            available_vehicles: availableVehicles,
+            total_vehicles: totalVehicles,
+            availability_percentage: parseFloat(availabilityPercentage.toFixed(2)),
+            date_range: {
+                start_date: startDate,
+                end_date: endDate
+            }
+        };
+    } catch (error) {
+        logger.error('Error getting location availability', { module: 'locations', error, locationId });
+        throw error;
+    }
+};
+
 export const getLocationStatistics = async (): Promise<LocationStatistics> => {
     try {
         // Get total locations

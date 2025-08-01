@@ -209,6 +209,23 @@ backendcalebogetovehiclerentingmgtsys@1.0.0
 # HTTP test files (keep client.http for API documentation)
 # client.http  # Commented out - this should be kept for API testing
 
+# Test shell scripts
+test-*.sh
+*-test.sh
+*.test.sh
+enhance-*.sh
+location-*.sh
+geocode-*.sh
+check-*.sh
+deploy-*.sh
+diagnose-*.sh
+find-*.sh
+start-*.sh
+# All shell scripts except specific ones we want to keep
+*.sh
+# If you want to keep specific shell scripts, add them with ! prefix like:
+# !important-script.sh
+
 # Summary and documentation files (you might want to keep these)
 # Uncomment any of these if you don't want them in your repo:
 # BACKEND_IMPLEMENTATION_SUMMARY.md

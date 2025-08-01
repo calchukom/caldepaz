@@ -29,11 +29,23 @@ export const getAllLocations = async (req: Request, res: Response, next: NextFun
         const search = req.query.search as string;
         const sortBy = req.query.sortBy as string;
         const sortOrder = req.query.sortOrder as 'asc' | 'desc';
+        const country = req.query.country as string;
+        const city = req.query.city as string;
+
+        // Geographic filtering parameters
+        const latitude = req.query.latitude ? parseFloat(req.query.latitude as string) : undefined;
+        const longitude = req.query.longitude ? parseFloat(req.query.longitude as string) : undefined;
+        const radius = req.query.radius ? parseFloat(req.query.radius as string) : undefined;
 
         const filters = {
             search,
             sortBy,
             sortOrder,
+            country,
+            city,
+            latitude,
+            longitude,
+            radius
         };
 
         const result = await locationService.getAllLocations(page, limit, filters);
@@ -94,12 +106,32 @@ export const getPopularLocations = async (req: Request, res: Response, next: Nex
  */
 export const createLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const { name, address, contact_phone } = req.body;
+        const {
+            name,
+            address,
+            contact_phone,
+            city,
+            state,
+            country,
+            postal_code,
+            email,
+            latitude,
+            longitude,
+            operating_hours
+        } = req.body;
 
         const locationData = {
             name,
             address,
             contact_phone,
+            city,
+            state,
+            country,
+            postal_code,
+            email,
+            latitude,
+            longitude,
+            operating_hours
         };
 
         const location = await locationService.createLocation(locationData);
@@ -117,12 +149,32 @@ export const createLocation = async (req: Request, res: Response, next: NextFunc
 export const updateLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const locationId = req.params.id;
-        const { name, address, contact_phone } = req.body;
+        const {
+            name,
+            address,
+            contact_phone,
+            city,
+            state,
+            country,
+            postal_code,
+            email,
+            latitude,
+            longitude,
+            operating_hours
+        } = req.body;
 
         const updateData = {
             name,
             address,
             contact_phone,
+            city,
+            state,
+            country,
+            postal_code,
+            email,
+            latitude,
+            longitude,
+            operating_hours
         };
 
         const location = await locationService.updateLocation(locationId, updateData);
@@ -206,14 +258,74 @@ export const getLocationStatistics = async (req: Request, res: Response, next: N
 };
 
 // Export controller object
+/**
+ * Search locations by query
+ */
+export const searchLocations = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const query = req.query.query as string;
+        const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+
+        const locations = await locationService.searchLocations(query, limit);
+
+        sendResponse(res, 200, 'Locations search results', { locations });
+    } catch (error) {
+        logger.error('Error in searchLocations controller', { module: 'locations', error });
+        next(error);
+    }
+};
+
+/**
+ * Get vehicles by location ID
+ */
+export const getVehiclesByLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const locationId = req.params.id;
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+
+        const vehicles = await locationService.getVehiclesByLocation(locationId, page, limit);
+
+        if (!vehicles) {
+            throw ErrorFactory.notFound('Location not found');
+        }
+
+        sendResponse(res, 200, 'Vehicles retrieved successfully', vehicles);
+    } catch (error) {
+        logger.error('Error in getVehiclesByLocation controller', { module: 'locations', error });
+        next(error);
+    }
+};
+
+/**
+ * Get location availability
+ */
+export const getLocationAvailability = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+        const locationId = req.params.id;
+        const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date();
+        const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date(startDate.getTime() + 7 * 24 * 60 * 60 * 1000); // Default to 7 days ahead
+
+        const availability = await locationService.getLocationAvailability(locationId, startDate, endDate);
+
+        sendResponse(res, 200, 'Location availability retrieved successfully', availability);
+    } catch (error) {
+        logger.error('Error in getLocationAvailability controller', { module: 'locations', error });
+        next(error);
+    }
+};
+
 export const locationController = {
     getAllLocations,
     getLocationById,
     getPopularLocations,
+    searchLocations,
     createLocation,
     updateLocation,
     deleteLocation,
     getPopularLocationsWithIds,
     createLocationFromPopular,
     getLocationStatistics,
+    getVehiclesByLocation,
+    getLocationAvailability,
 };

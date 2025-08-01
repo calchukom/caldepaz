@@ -12,7 +12,9 @@ import {
   updateLocationSchema,
   locationQuerySchema,
   popularLocationsQuerySchema,
-  createFromPopularSchema
+  createFromPopularSchema,
+  locationSearchSchema,
+  locationGeoFilterSchema
 } from '../validation/location.validator';
 
 const router = Router();
@@ -46,11 +48,33 @@ router.get('/popular', apiRateLimiter, validate(popularLocationsQuerySchema), lo
 router.get('/popular-with-ids', authenticateToken, requireAdmin, validate(popularLocationsQuerySchema), locationController.getPopularLocationsWithIds);
 
 /**
+ * @route   GET /api/locations/search
+ * @desc    Search Locations (Public)
+ * @access  Public
+ * @query   query
+ */
+router.get('/search', searchRateLimiter, validate(locationSearchSchema), locationController.searchLocations);
+
+/**
  * @route   GET /api/locations/statistics
  * @desc    Get Location Statistics (Admin only)
  * @access  Private (Admin)
  */
 router.get('/statistics', authenticateToken, requireAdmin, locationController.getLocationStatistics);
+
+/**
+ * @route   GET /api/locations/:id/vehicles
+ * @desc    Get Vehicles by Location ID
+ * @access  Public
+ */
+router.get('/:id/vehicles', locationController.getVehiclesByLocation);
+
+/**
+ * @route   GET /api/locations/:id/availability
+ * @desc    Get Location Availability
+ * @access  Public
+ */
+router.get('/:id/availability', locationController.getLocationAvailability);
 
 /**
  * @route   GET /api/locations/:id
