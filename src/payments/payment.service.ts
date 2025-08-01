@@ -42,7 +42,7 @@ export class PaymentService {
             throw new Error('STRIPE_SECRET_KEY is required');
         }
 
-        this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+        this.stripe = new (Stripe as any)(process.env.STRIPE_SECRET_KEY);
 
         this.mpesaBaseUrl = process.env.MPESA_ENV === 'production'
             ? 'https://api.safaricom.co.ke'
