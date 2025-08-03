@@ -42,12 +42,13 @@ export class CloudinaryService {
         const folder = `${this.FOLDER_PREFIX}/${vehicleId}${is360 ? '/360' : ''}`;
         const public_id = `${vehicleId}_${crypto.randomBytes(8).toString('hex')}`;
 
-        // Parameters to sign (EXCLUDE transformations - they break the signature)
+        // Parameters to sign (ONLY include what Cloudinary expects)
+        // Based on error: 'folder=...&public_id=...&timestamp=...'
         const params = {
-            timestamp,
             folder,
             public_id,
-            resource_type: 'image'
+            timestamp
+            // ❌ REMOVED: resource_type (not expected in signature)
             // ❌ REMOVED: transformation parameters (these break Cloudinary signatures)
         };
 
