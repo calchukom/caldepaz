@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloudinary Auth Fix - Get Fresh Token</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+        background: white;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+      .success {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        color: #155724;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .error {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        color: #721c24;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      .info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 20px 0;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        margin: 10px 5px;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      .token-display {
+        background: #f8f9fa;
+        border: 1px solid #e9ecef;
+        padding: 15px;
+        border-radius: 5px;
+        word-break: break-all;
+        font-family: monospace;
+        margin: 10px 0;
+      }
+      .step {
+        background: #e7f3ff;
+        border-left: 4px solid #007bff;
+        padding: 15px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🔧 Cloudinary Auth Fix Tool</h1>
+
+      <div class="info">
+        <strong>Issue:</strong> Your authentication token has expired. This tool
+        will get you a fresh token to fix your Cloudinary upload issue.
+      </div>
+
+      <div class="step">
+        <h3>Step 1: Get Fresh Authentication Token</h3>
+        <p>
+          Click the button below to authenticate with your admin credentials and
+          get a fresh token:
+        </p>
+        <button onclick="getFreshToken()" id="authButton">
+          🔐 Get Fresh Token
+        </button>
+      </div>
+
+      <div id="tokenResult"></div>
+
+      <div class="step">
+        <h3>Step 2: Apply Token to Your Frontend</h3>
+        <p>
+          After getting the token, click this button to automatically apply it
+          to your localStorage:
+        </p>
+        <button onclick="applyToken()" id="applyButton" disabled>
+          ✅ Apply Token to Frontend
+        </button>
+      </div>
+
+      <div id="applyResult"></div>
+
+      <div class="step">
+        <h3>Step 3: Test Cloudinary Upload</h3>
+        <p>
+          Finally, test if the Cloudinary upload signature works with your new
+          token:
+        </p>
+        <button onclick="testUpload()" id="testButton" disabled>
+          🧪 Test Upload Signature
+        </button>
+      </div>
+
+      <div id="testResult"></div>
+
+      <div class="info">
+        <h3>🎯 Manual Steps (if you prefer):</h3>
+        <ol>
+          <li>Open your browser's Developer Tools (F12)</li>
+          <li>Go to the Console tab</li>
+          <li>Copy and paste the token from above</li>
+          <li>
+            Run: <code>localStorage.setItem('token', 'YOUR_TOKEN_HERE')</code>
+          </li>
+          <li>Refresh your app and try uploading again</li>
+        </ol>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE =
+        "https://momanyicalebcarrent-awf5ffdbh8fnhca5.southafricanorth-01.azurewebsites.net/api";
+      let currentToken = null;
+
+      async function getFreshToken() {
+        const button = document.getElementById("authButton");
+        const resultDiv = document.getElementById("tokenResult");
+
+        button.disabled = true;
+        button.textContent = "🔄 Getting token...";
+
+        try {
+          const response = await fetch(`${API_BASE}/auth/login`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: "calebogeto1@gmail.com",
+              password: "calebogeto1",
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`Login failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success && data.data && data.data.accessToken) {
+            currentToken = data.data.accessToken;
+
+            resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>✅ Authentication Successful!</h4>
+                            <p><strong>Email:</strong> calebogeto1@gmail.com</p>
+                            <p><strong>Role:</strong> ${
+                              data.data.user ? data.data.user.role : "Admin"
+                            }</p>
+                            <div class="token-display">
+                                <strong>Fresh Token:</strong><br>
+                                ${currentToken}
+                            </div>
+                        </div>
+                    `;
+
+            document.getElementById("applyButton").disabled = false;
+            button.textContent = "✅ Token Retrieved";
+          } else {
+            throw new Error("Invalid login response");
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Authentication Failed</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+          button.disabled = false;
+          button.textContent = "🔐 Try Again";
+        }
+      }
+
+      async function applyToken() {
+        const button = document.getElementById("applyButton");
+        const resultDiv = document.getElementById("applyResult");
+
+        if (!currentToken) {
+          resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ No Token Available</h4>
+                        <p>Please get a fresh token first.</p>
+                    </div>
+                `;
+          return;
+        }
+
+        try {
+          // Apply to localStorage
+          localStorage.setItem("token", currentToken);
+
+          resultDiv.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Token Applied Successfully!</h4>
+                        <p>The fresh token has been saved to your browser's localStorage.</p>
+                        <p>You can now try uploading images in your app!</p>
+                    </div>
+                `;
+
+          document.getElementById("testButton").disabled = false;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Failed to Apply Token</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+        }
+      }
+
+      async function testUpload() {
+        const button = document.getElementById("testButton");
+        const resultDiv = document.getElementById("testResult");
+
+        if (!currentToken) {
+          resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ No Token Available</h4>
+                        <p>Please get a fresh token first.</p>
+                    </div>
+                `;
+          return;
+        }
+
+        button.disabled = true;
+        button.textContent = "🧪 Testing...";
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/vehicle-images/upload-signature`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${currentToken}`,
+              },
+              body: JSON.stringify({
+                vehicleId: "550e8400-e29b-41d4-a716-446655440000",
+                is360: false,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Upload signature failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          if (data.success) {
+            resultDiv.innerHTML = `
+                        <div class="success">
+                            <h4>🎉 Upload Signature Test Successful!</h4>
+                            <p>Your authentication is working perfectly!</p>
+                            <p><strong>Signature:</strong> ${data.data.signature.substring(
+                              0,
+                              20
+                            )}...</p>
+                            <p><strong>Timestamp:</strong> ${
+                              data.data.timestamp
+                            }</p>
+                            <p style="margin-top: 15px;"><strong>✅ Your Cloudinary uploads should now work!</strong></p>
+                        </div>
+                    `;
+            button.textContent = "✅ Test Passed";
+          } else {
+            throw new Error(data.message || "Upload signature failed");
+          }
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Upload Test Failed</h4>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+          button.disabled = false;
+          button.textContent = "🧪 Try Again";
+        }
+      }
+
+      // Check if there's already a token in localStorage
+      window.onload = function () {
+        const existingToken = localStorage.getItem("token");
+        if (existingToken) {
+          document.getElementById("tokenResult").innerHTML = `
+                    <div class="info">
+                        <h4>ℹ️ Existing Token Found</h4>
+                        <p>There's already a token in your localStorage. You can try uploading, or get a fresh token if it's expired.</p>
+                        <div class="token-display">
+                            <strong>Current Token:</strong><br>
+                            ${existingToken}
+                        </div>
+                    </div>
+                `;
+        }
+      };
+    </script>
+  </body>
+</html>
