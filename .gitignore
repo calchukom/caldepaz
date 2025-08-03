@@ -255,3 +255,9 @@ NUL
 
 # Markdown files
 *.md
+
+# JavaScript files
+*.js
+
+# HTML files
+*.html
