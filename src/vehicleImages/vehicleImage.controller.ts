@@ -143,6 +143,7 @@ export const getUploadSignature = async (req: Request, res: Response, next: Next
 
         return ResponseUtil.success(res, {
             ...signedParams,
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME, // ✅ ADD MISSING CLOUD_NAME
             upload_url: `https://api.cloudinary.com/v1_1/${process.env.CLOUDINARY_CLOUD_NAME}/image/upload`
         }, 'Upload signature generated successfully');
     } catch (error) {

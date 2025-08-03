@@ -449,16 +449,16 @@ export const optionalAuth = async (
 export const roleBasedRateLimit = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     const userRole = req.user?.role;
 
-    // Admin and support agents get higher rate limits
+    // Admin and support agents get higher rate limits (200x increased + 100x faster)
     if (userRole === 'admin' || userRole === 'support_agent') {
         req.rateLimit = {
-            max: 1000, // 1000 requests per window
-            windowMs: 15 * 60 * 1000, // 15 minutes
+            max: 200000, // 200,000 requests per window (200x from 1000)
+            windowMs: 60 * 1000, // 1 minute (100x faster than 15 minutes)
         };
     } else {
         req.rateLimit = {
-            max: 100, // 100 requests per window
-            windowMs: 15 * 60 * 1000, // 15 minutes
+            max: 20000, // 20,000 requests per window (200x from 100)
+            windowMs: 60 * 1000, // 1 minute (100x faster than 15 minutes)
         };
     }
 

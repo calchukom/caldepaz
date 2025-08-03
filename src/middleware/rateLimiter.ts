@@ -113,113 +113,113 @@ initializeRedis().catch(err => {
     console.warn("Failed to initialize Redis:", err);
 });
 
-// ULTRA-HIGH RATE LIMITS - 30x INCREASED FOR ALL ENVIRONMENTS
-// Ensuring smooth dashboard operations across development, staging, and production
-const isUltraHighLimitsMode = true; // Always true for maximum smoothness
+// EXTREME RATE LIMITS - 200x INCREASED FOR ULTIMATE DASHBOARD SMOOTHNESS
+// Ensuring maximum performance and zero rate limit issues across all environments
+const isExtremeHighLimitsMode = true; // Always true for ultimate smoothness
 
-// Rate limiter configurations - ALL LIMITS MULTIPLIED BY 30x
+// Rate limiter configurations - ALL LIMITS MULTIPLIED BY 200x + 100x FASTER REQUESTS
 const rateLimiterConfigs = {
-    // Authentication endpoints (30x INCREASED - Ultra smooth login/register)
+    // Authentication endpoints (200x INCREASED - Ultimate smooth login/register)
     auth: {
-        points: 3000000, // 3,000,000 attempts always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 attempts always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Registration/signup (30x INCREASED - Ultra smooth registration)
+    // Registration/signup (200x INCREASED - Ultimate smooth registration)
     registration: {
-        points: 3000000, // 3,000,000 attempts always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 attempts always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Password reset (30x INCREASED - Ultra smooth password operations)
+    // Password reset (200x INCREASED - Ultimate smooth password operations)
     passwordReset: {
-        points: 3000000, // 3,000,000 attempts always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 attempts always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Email verification (30x INCREASED - Ultra smooth email operations)
+    // Email verification (200x INCREASED - Ultimate smooth email operations)
     emailVerification: {
-        points: 3000000, // 3,000,000 attempts always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 attempts always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // General API endpoints (30x INCREASED - Ultra smooth dashboard API calls)
+    // General API endpoints (200x INCREASED - Ultimate smooth dashboard API calls)
     api: {
         user: {
-            points: 15000000, // 15,000,000 requests always (30x from 500k)
-            duration: 3600, // per hour
-            blockDuration: 0.5, // block for only 0.5 seconds
+            points: 100000000, // 100,000,000 requests always (200x from 500k)
+            duration: 60, // per minute (100x faster - was 3600)
+            blockDuration: 0.1, // block for only 0.1 seconds
         },
         admin: {
-            points: 30000000, // 30,000,000 requests always (30x from 1M)
-            duration: 3600, // per hour
-            blockDuration: 0.5, // block for only 0.5 seconds
+            points: 200000000, // 200,000,000 requests always (200x from 1M)
+            duration: 60, // per minute (100x faster - was 3600)
+            blockDuration: 0.1, // block for only 0.1 seconds
         },
         guest: {
-            points: 6000000, // 6,000,000 requests always (30x from 200k)
-            duration: 3600, // per hour
-            blockDuration: 0.5, // block for only 0.5 seconds
+            points: 40000000, // 40,000,000 requests always (200x from 200k)
+            duration: 60, // per minute (100x faster - was 3600)
+            blockDuration: 0.1, // block for only 0.1 seconds
         },
     },
 
-    // Booking-related endpoints (30x INCREASED - Ultra smooth booking operations)
+    // Booking-related endpoints (200x INCREASED - Ultimate smooth booking operations)
     bookings: {
-        points: 3000000, // 3,000,000 requests always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 requests always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Vehicle search and browsing (30x INCREASED - Ultra smooth vehicle browsing)
+    // Vehicle search and browsing (200x INCREASED - Ultimate smooth vehicle browsing)
     vehicleSearch: {
-        points: 6000000, // 6,000,000 requests always (30x from 200k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 40000000, // 40,000,000 requests always (200x from 200k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Payment processing (30x INCREASED - Ultra smooth payment operations)
+    // Payment processing (200x INCREASED - Ultimate smooth payment operations)
     payments: {
-        points: 1500000, // 1,500,000 requests always (30x from 50k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 10000000, // 10,000,000 requests always (200x from 50k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Vehicle management (30x INCREASED - Ultra smooth vehicle management)
+    // Vehicle management (200x INCREASED - Ultimate smooth vehicle management)
     vehicleManagement: {
-        points: 3000000, // 3,000,000 requests always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 requests always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Maintenance operations (30x INCREASED - Ultra smooth maintenance)
+    // Maintenance operations (200x INCREASED - Ultimate smooth maintenance)
     maintenance: {
-        points: 3000000, // 3,000,000 requests always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 requests always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Search endpoints (30x INCREASED - Ultra smooth search operations)
+    // Search endpoints (200x INCREASED - Ultimate smooth search operations)
     search: {
-        points: 3000000, // 3,000,000 requests always (30x from 100k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 20000000, // 20,000,000 requests always (200x from 100k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // File upload endpoints (30x INCREASED - Ultra smooth file uploads)
+    // File upload endpoints (200x INCREASED - Ultimate smooth file uploads)
     upload: {
-        points: 300000, // 300,000 uploads always (30x from 10k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 2000000, // 2,000,000 uploads always (200x from 10k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 
-    // Admin creation/invitation endpoints (30x INCREASED - Ultra smooth admin actions)
+    // Admin creation/invitation endpoints (200x INCREASED - Ultimate smooth admin actions)
     adminActions: {
-        points: 300000, // 300,000 admin actions always (30x from 10k)
-        duration: 3600, // per hour
-        blockDuration: 0.5, // block for only 0.5 seconds
+        points: 2000000, // 2,000,000 admin actions always (200x from 10k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // block for only 0.1 seconds
     },
 };
 
@@ -324,9 +324,9 @@ const createRateLimiterMiddleware = (
     } = {}
 ) => {
     return async (req: Request, res: Response, next: NextFunction) => {
-        // ULTRA-HIGH LIMITS ALWAYS ENABLED - No environment-based disabling
+        // EXTREME RATE LIMITS ALWAYS ENABLED - No environment-based disabling
         // Ensuring maximum smoothness for dashboard operations in ALL environments
-        console.log('🚀 Ultra-high rate limits enabled for maximum dashboard smoothness');
+        console.log('🚀 EXTREME rate limits enabled for ultimate dashboard smoothness (200x limits, 100x faster)');
 
         try {
             const clientId = options.keyGenerator ? options.keyGenerator(req) : getClientId(req);
@@ -409,9 +409,9 @@ export const emailVerificationRateLimiter = createRateLimiterMiddleware(emailVer
 
 // API rate limiter that adapts based on user type
 export const apiRateLimiter = async (req: Request, res: Response, next: NextFunction) => {
-    // ULTRA-HIGH LIMITS ALWAYS ENABLED - No environment-based disabling
+    // EXTREME LIMITS ALWAYS ENABLED - No environment-based disabling
     // Ensuring maximum smoothness for dashboard operations in ALL environments
-    console.log('🚀 Ultra-high API rate limits enabled for maximum dashboard smoothness');
+    console.log('🚀 EXTREME API rate limits enabled for ultimate dashboard smoothness (200x limits, 100x faster)');
 
     try {
         const userType: UserType = (req.user?.user_type && ['member', 'driver', 'owner', 'admin', 'guest'].includes(req.user.user_type))
@@ -484,36 +484,36 @@ export const adminActionsRateLimiter = createRateLimiterMiddleware(adminActionsL
     customErrorMessage: "Too many admin actions. Please slow down.",
 });
 
-// Aggressive rate limiter for sensitive endpoints (30x INCREASED)
+// Aggressive rate limiter for sensitive endpoints (200x INCREASED)
 export const strictRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 1500000, // 1,500,000 requests always (30x from 50k)
-        duration: 3600, // 1 hour
-        blockDuration: 0.5, // 0.5 seconds block always
+        points: 10000000, // 10,000,000 requests always (200x from 50k)
+        duration: 60, // per minute (100x faster - was 3600)
+        blockDuration: 0.1, // 0.1 seconds block always
     }, "strict"),
     {
         customErrorMessage: "This endpoint has strict rate limiting. Please try again later.",
     }
 );
 
-// Burst protection for real-time endpoints (30x INCREASED)
+// Burst protection for real-time endpoints (200x INCREASED)
 export const burstProtectionRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 300000, // 300,000 requests always (30x from 10k)
+        points: 2000000, // 2,000,000 requests always (200x from 10k)
         duration: 10, // 10 seconds
-        blockDuration: 0.5, // 0.5 seconds block always
+        blockDuration: 0.1, // 0.1 seconds block always
     }, "burst"),
     {
         customErrorMessage: "Too many rapid requests. Please slow down.",
     }
 );
 
-// Rate limiter for webhook endpoints (30x INCREASED)
+// Rate limiter for webhook endpoints (200x INCREASED)
 export const webhookRateLimiter = createRateLimiterMiddleware(
     createRateLimiter({
-        points: 3000, // 3,000 webhooks (30x from 100)
+        points: 20000, // 20,000 webhooks (200x from 100)
         duration: 60, // 1 minute
-        blockDuration: 1, // 1 second block
+        blockDuration: 0.1, // 0.1 second block
     }, "webhook"),
     {
         customErrorMessage: "Webhook rate limit exceeded.",
@@ -618,10 +618,10 @@ export const resetRateLimit = async (clientId: string, limiterType: string = 'ap
     }
 };
 
-// Vehicle/incident reporting rate limiter (30x INCREASED)
+// Vehicle/incident reporting rate limiter (200x INCREASED)
 export const reportingRateLimiter = rateLimit({
     windowMs: 1000, // 1 second always for ultra-smooth operations
-    max: 300000, // 300,000 reports always (30x from 10k)
+    max: 2000000, // 2,000,000 reports always (200x from 10k)
     message: {
         error: "Too many incident reports submitted. Please try again later.",
         retryAfter: "1 second",
@@ -641,10 +641,10 @@ export const reportingRateLimiter = rateLimit({
     },
 });
 
-// Vehicle review/feedback creation rate limiter (30x INCREASED)
+// Vehicle review/feedback creation rate limiter (200x INCREASED)
 export const commentCreationRateLimiter = rateLimit({
     windowMs: 1000, // 1 second always for ultra-smooth operations
-    max: 300000, // 300,000 reviews always (30x from 10k)
+    max: 2000000, // 2,000,000 reviews always (200x from 10k)
     message: {
         error: "Too many reviews created. Please try again later.",
         retryAfter: "1 second",
@@ -772,11 +772,14 @@ export const rateLimiterInfo = {
     configs: rateLimiterConfigs,
     backend: redisClient ? 'redis' : 'memory',
     redisConnected: !!redisClient,
-    systemType: 'vehicle-rental-management-ultra-high-limits',
+    systemType: 'vehicle-rental-management-extreme-limits',
     supportedUserTypes: ['customer', 'fleet_manager', 'admin', 'support_agent', 'guest'],
-    mode: 'ULTRA_HIGH_LIMITS_30X',
-    description: 'All rate limits increased by 30x for maximum dashboard smoothness across all environments',
-    limitsMultiplier: 30,
-    blockDuration: '0.5 seconds (ultra-short)',
+    mode: 'EXTREME_LIMITS_200X_100X_FASTER',
+    description: 'All rate limits increased by 200x and requests per minute 100x faster for ultimate dashboard smoothness across all environments',
+    limitsMultiplier: 200,
+    speedMultiplier: 100,
+    blockDuration: '0.1 seconds (extreme-short)',
     environmentSupport: 'All environments (development, staging, production)',
+    newDuration: '60 seconds (per minute instead of per hour)',
+    previousDuration: '3600 seconds (per hour)',
 };

@@ -17,11 +17,11 @@ const securityConfig = {
         maxAge: 86400 // 24 hours
     },
     rateLimit: {
-        windowMs: 15 * 60 * 1000, // 15 minutes
-        max: 100, // limit each IP to 100 requests per windowMs
+        windowMs: 60 * 1000, // 1 minute (100x faster than 15 minutes)
+        max: 20000, // limit each IP to 20,000 requests per minute (200x from 100)
         message: {
             error: 'Too many requests from this IP, please try again later.',
-            retryAfter: '15 minutes'
+            retryAfter: '1 minute'
         },
         standardHeaders: true,
         legacyHeaders: false,
@@ -88,8 +88,8 @@ export function configureSecurityMiddleware(app: Application): void {
     // Stricter rate limiting for auth endpoints with error handling
     try {
         const authLimiter = rateLimit({
-            windowMs: 15 * 60 * 1000, // 15 minutes
-            max: 20, // limit each IP to 20 auth requests per windowMs
+            windowMs: 60 * 1000, // 1 minute (100x faster than 15 minutes)
+            max: 4000, // limit each IP to 4,000 auth requests per minute (200x from 20)
             validate: {
                 trustProxy: process.env.NODE_ENV === 'production' || process.env.TRUST_PROXY === 'true',
                 xForwardedForHeader: true

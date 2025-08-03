@@ -15,6 +15,7 @@ export interface CloudinarySignature {
     public_id: string;
     folder: string;
     api_key: string;
+    cloud_name?: string; // Optional since it's added in controller
 }
 
 export interface CloudinaryUploadResponse {
@@ -41,20 +42,13 @@ export class CloudinaryService {
         const folder = `${this.FOLDER_PREFIX}/${vehicleId}${is360 ? '/360' : ''}`;
         const public_id = `${vehicleId}_${crypto.randomBytes(8).toString('hex')}`;
 
-        // Parameters to sign
+        // Parameters to sign (EXCLUDE transformations - they break the signature)
         const params = {
             timestamp,
             folder,
             public_id,
-            resource_type: 'image',
-            ...(is360 && {
-                // 360 image specific transformations
-                transformation: [
-                    { width: 2048, height: 1024, crop: 'fill' },
-                    { quality: 'auto:good' },
-                    { format: 'jpg' }
-                ]
-            })
+            resource_type: 'image'
+            // ❌ REMOVED: transformation parameters (these break Cloudinary signatures)
         };
 
         // Generate signature
