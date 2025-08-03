@@ -60,6 +60,7 @@ export interface VehicleWithDetails {
     is_damaged?: boolean | null;
     damage_description?: string | null;
     images?: string[] | null;
+    primary_image_url?: string | null; // ✅ ADDED: Primary image URL from vehicle_images table
     notes?: string | null;
     created_at: Date;
     updated_at: Date;
@@ -146,6 +147,45 @@ const buildOrderByClause = (sortBy?: string, sortOrder?: string) => {
     }
 };
 
+// Enhanced vehicle select fields to include primary image URL
+const vehicleSelectFieldsWithPrimaryImage = {
+    vehicle_id: vehicles.vehicle_id,
+    vehicleSpec_id: vehicles.vehicleSpec_id,
+    location_id: vehicles.location_id,
+    rental_rate: vehicles.rental_rate,
+    availability: vehicles.availability,
+    status: vehicles.status,
+    license_plate: vehicles.license_plate,
+    mileage: vehicles.mileage,
+    fuel_level: vehicles.fuel_level,
+    last_service_date: vehicles.last_service_date,
+    next_service_due: vehicles.next_service_due,
+    last_cleaned: vehicles.last_cleaned,
+    insurance_expiry: vehicles.insurance_expiry,
+    registration_expiry: vehicles.registration_expiry,
+    acquisition_date: vehicles.acquisition_date,
+    acquisition_cost: vehicles.acquisition_cost,
+    depreciation_rate: vehicles.depreciation_rate,
+    condition_rating: vehicles.condition_rating,
+    gps_tracking_id: vehicles.gps_tracking_id,
+    is_damaged: vehicles.is_damaged,
+    damage_description: vehicles.damage_description,
+    notes: vehicles.notes,
+    created_at: vehicles.created_at,
+    updated_at: vehicles.updated_at,
+    manufacturer: vehicleSpecifications.manufacturer,
+    model: vehicleSpecifications.model,
+    year: vehicleSpecifications.year,
+    seating_capacity: vehicleSpecifications.seating_capacity,
+    color: vehicleSpecifications.color,
+    engine_capacity: vehicleSpecifications.engine_capacity,
+    features: vehicleSpecifications.features,
+    location_name: locations.name,
+    // ✅ ADD PRIMARY IMAGE URL FROM vehicle_images table
+    primary_image_url: vehicleImages.url,
+};
+
+// Original fields for compatibility with existing methods
 const vehicleSelectFields = {
     vehicle_id: vehicles.vehicle_id,
     vehicleSpec_id: vehicles.vehicleSpec_id,
@@ -225,6 +265,8 @@ export const getAllVehicles = async (
     const conditions = buildWhereConditions(filters);
     const orderBy = buildOrderByClause(filters.sortBy, filters.sortOrder);
     const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    // Count total vehicles (without image join for performance)
     const totalResult = await db
         .select({ count: count() })
         .from(vehicles)
@@ -232,17 +274,25 @@ export const getAllVehicles = async (
         .leftJoin(locations as any, eq(vehicles.location_id, locations.location_id))
         .where(whereClause);
     const total = totalResult[0]?.count || 0;
+
+    // ✅ ENHANCED: Get vehicles WITH primary image URL
     const vehicleResults = await db
-        .select(vehicleSelectFields)
+        .select(vehicleSelectFieldsWithPrimaryImage)
         .from(vehicles)
         .leftJoin(vehicleSpecifications as any, eq(vehicles.vehicleSpec_id, vehicleSpecifications.vehicleSpec_id))
         .leftJoin(locations as any, eq(vehicles.location_id, locations.location_id))
+        // ✅ ADD: LEFT JOIN with vehicle_images table to get primary image
+        .leftJoin(vehicleImages as any, and(
+            eq(vehicles.vehicle_id, vehicleImages.vehicle_id),
+            eq(vehicleImages.is_primary, true)  // Only get primary image
+        ))
         .where(whereClause)
         .orderBy(orderBy)
         .limit(limit)
         .offset(offset);
+
     return {
-        vehicles: vehicleResults as VehicleWithDetails[],
+        vehicles: vehicleResults as (VehicleWithDetails & { primary_image_url?: string | null })[],
         total,
         page,
         limit,
@@ -253,7 +303,7 @@ export const getAllVehicles = async (
 export const searchVehicles = async (q: string, limit: number = 10) => {
     const filters: VehicleFilters = { search: q };
     const { vehicles } = await getAllVehicles(1, limit, filters);
-    return vehicles;
+    return vehicles; // Now includes primary_image_url ✅
 };
 
 export const getVehicleById = async (vehicleId: string): Promise<VehicleWithDetails | null> => {
@@ -344,12 +394,17 @@ export const getAvailableVehicles = async (
         .leftJoin(locations as any, eq(vehicles.location_id, locations.location_id))
         .where(whereClause);
     const total = totalResult[0]?.count ?? 0;
-    // Get paginated available vehicles with specifications
+    // Get paginated available vehicles with specifications AND primary image
     const result = await db
-        .select(vehicleSelectFields)
+        .select(vehicleSelectFieldsWithPrimaryImage)
         .from(vehicles)
         .leftJoin(vehicleSpecifications as any, eq(vehicles.vehicleSpec_id, vehicleSpecifications.vehicleSpec_id))
         .leftJoin(locations as any, eq(vehicles.location_id, locations.location_id))
+        // ✅ ADD: LEFT JOIN with vehicle_images to get primary image
+        .leftJoin(vehicleImages as any, and(
+            eq(vehicles.vehicle_id, vehicleImages.vehicle_id),
+            eq(vehicleImages.is_primary, true)
+        ))
         .where(whereClause)
         .orderBy(desc(vehicles.created_at))
         .limit(limit)
