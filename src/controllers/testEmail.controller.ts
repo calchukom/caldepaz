@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { sendEmail, EmailTemplate } from '../middleware/googleMailer';
+import { sendEmail, sendReceiptEmail, EmailTemplate } from '../middleware/googleMailer';
 import { ResponseUtil } from '../middleware/response';
 import { ErrorFactory } from '../middleware/appError';
 import { logger, LogCategory } from '../middleware/logger';
@@ -195,6 +195,53 @@ export class TestEmailController {
                 timestamp: new Date(),
                 production_url: 'https://momanyicalebcarrent-awf5ffdbh8fnhca5.southafricanorth-01.azurewebsites.net'
             }, `Email configuration is ${isConfigured ? 'ready' : 'incomplete'}`);
+
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Send receipt email with custom HTML content
+     */
+    async sendReceiptEmail(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { to, subject, html, text } = req.body;
+
+            if (!to) {
+                throw ErrorFactory.badRequest('Email address is required');
+            }
+
+            if (!subject) {
+                throw ErrorFactory.badRequest('Email subject is required');
+            }
+
+            if (!html) {
+                throw ErrorFactory.badRequest('HTML content is required');
+            }
+
+            const receiptRequest = {
+                to,
+                subject,
+                html,
+                text: text || 'Thank you for your booking with CARLEB CALEB VEHICLE RENT!'
+            };
+
+            const result = await sendReceiptEmail(receiptRequest);
+
+            if (result.success) {
+                logger.info(LogCategory.EMAIL, `Receipt email sent successfully to: ${to}`);
+                ResponseUtil.success(res, {
+                    email_sent: true,
+                    recipient: to,
+                    subject,
+                    timestamp: new Date(),
+                    environment: process.env.NODE_ENV || 'development'
+                }, 'Receipt email sent successfully');
+            } else {
+                logger.error(LogCategory.EMAIL, `Receipt email failed: ${result.error}`);
+                throw ErrorFactory.internal(`Receipt email sending failed: ${result.message}`);
+            }
 
         } catch (error) {
             next(error);

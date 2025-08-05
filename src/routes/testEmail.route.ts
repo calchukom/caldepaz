@@ -31,6 +31,15 @@ const testAllTemplatesSchema = z.object({
     })
 });
 
+const receiptEmailSchema = z.object({
+    body: z.object({
+        to: z.string().email('Valid email address is required'),
+        subject: z.string().min(1, 'Subject is required'),
+        html: z.string().min(1, 'HTML content is required'),
+        text: z.string().optional()
+    })
+});
+
 /**
  * @route   POST /api/test/email
  * @desc    Test email sending functionality
@@ -67,6 +76,19 @@ router.get(
     authenticateToken,
     requireAdmin,
     testEmailController.testEmailConfiguration
+);
+
+/**
+ * @route   POST /api/test/email/receipt
+ * @desc    Send receipt email with custom HTML content
+ * @access  Private (Admin only)
+ */
+router.post(
+    '/email/receipt',
+    authenticateToken,
+    requireAdmin,
+    validate(receiptEmailSchema),
+    testEmailController.sendReceiptEmail
 );
 
 export default router;

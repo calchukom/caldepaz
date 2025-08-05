@@ -85,6 +85,7 @@ import maintenanceRoutes from "./maintenance/maintenance.route";
 import chatRoutes from "./chat/chat.routes";
 import agentRoutes from "./agents/agent.route";
 import testEmailRoutes from "./routes/testEmail.route";
+import emailRoutes from "./routes/email.route";
 
 // Apply security middleware (helmet, cors, rate limiting, etc.)
 configureSecurityMiddleware(app);
@@ -117,6 +118,7 @@ app.use("/api/support-tickets", supportTicketRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/agents", agentRoutes);
+app.use("/api/email", emailRoutes);
 app.use("/api/test", testEmailRoutes);
 
 // Default route
@@ -138,7 +140,8 @@ app.get("/", (req: Request, res: Response) => {
             support_tickets: "/api/support-tickets",
             maintenance: "/api/maintenance",
             agents: "/api/agents",
-            chat: "/api/chat"
+            chat: "/api/chat",
+            email: "/api/email"
         },
         features: [
             "🔐 JWT Authentication & Authorization",

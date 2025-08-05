@@ -45,6 +45,14 @@ export interface EmailResponse {
   error?: any;
 }
 
+// Add this interface for receipt email data
+export interface ReceiptEmailRequest {
+  to: string;
+  subject: string;
+  html: string;
+  text?: string;
+}
+
 // Create reusable transporter with enhanced configuration for production
 const createTransporter = () => {
   // Validate required environment variables
@@ -356,6 +364,106 @@ export const sendEmail = async (emailRequest: EmailRequest): Promise<EmailRespon
     return {
       success: false,
       message: 'Unexpected email sending error',
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+};
+
+// Add this function to send receipt emails directly with HTML content
+export const sendReceiptEmail = async (emailRequest: ReceiptEmailRequest): Promise<EmailResponse> => {
+  const { to, subject, html, text } = emailRequest;
+
+  try {
+    logger.info(LogCategory.EMAIL, `Sending receipt email to: ${to}`);
+
+    // Validate email address format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      throw new Error(`Invalid email address format: ${to}`);
+    }
+
+    // Create transporter with error handling
+    let transporter;
+    try {
+      transporter = createTransporter();
+    } catch (error) {
+      logger.error(LogCategory.EMAIL, `Failed to create email transporter: ${error}`);
+      return {
+        success: false,
+        message: 'Email configuration error',
+        error: error instanceof Error ? error.message : 'Unknown transporter error'
+      };
+    }
+
+    // Setup email data for receipt
+    const mailOptions = {
+      from: `"CARLEB CALEB VEHICLE RENT" <${process.env.EMAIL_SENDER}>`,
+      to,
+      subject,
+      html,
+      text: text || 'Thank you for your booking with CARLEB CALEB VEHICLE RENT!',
+      headers: {
+        'X-Mailer': 'CARLEB CALEB Vehicle Rental System',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal'
+      }
+    };
+
+    // Skip actual sending in test environment
+    if (process.env.NODE_ENV === 'test') {
+      logger.info(LogCategory.EMAIL, `Test environment detected. Receipt email would have been sent to: ${to}`);
+      return {
+        success: true,
+        message: 'Receipt email sending skipped in test environment'
+      };
+    }
+
+    // Retry logic for production reliability
+    let lastError;
+    const maxRetries = 3;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Send mail with timeout
+        const sendResult = await Promise.race([
+          transporter.sendMail(mailOptions),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Email sending timeout')), 120000) // 2 minutes timeout
+          )
+        ]);
+
+        logger.info(LogCategory.EMAIL, `Receipt email sent successfully to: ${to} (attempt ${attempt})`);
+
+        return {
+          success: true,
+          message: 'Receipt email sent successfully'
+        };
+      } catch (error) {
+        lastError = error;
+        logger.warn(LogCategory.EMAIL, `Receipt email sending attempt ${attempt} failed for ${to}: ${error}`);
+
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff)
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          logger.info(LogCategory.EMAIL, `Retrying receipt email send in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All retries failed
+    logger.error(LogCategory.EMAIL, `Failed to send receipt email to: ${to} after ${maxRetries} attempts - ${lastError}`);
+    return {
+      success: false,
+      message: 'Failed to send receipt email after multiple attempts',
+      error: lastError instanceof Error ? lastError.message : 'Unknown error'
+    };
+
+  } catch (error) {
+    logger.error(LogCategory.EMAIL, `Unexpected error sending receipt email to: ${to} - ${error}`);
+    return {
+      success: false,
+      message: 'Unexpected receipt email sending error',
       error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
