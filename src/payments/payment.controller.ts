@@ -128,11 +128,13 @@ export class PaymentController {
 
             const result = await paymentService.checkMpesaTransactionStatus(checkout_request_id);
 
-            // The service now returns a standardized response, so we can directly send it
-            if (result.success) {
-                res.json(result);
+            // For M-Pesa status checks, all valid responses (including timeout, cancelled, failed) 
+            // should return 200 status code with the payment status in the response body
+            if (result.success || (result.data && result.data.payment_status)) {
+                // Always return 200 for valid payment status responses
+                res.status(200).json(result);
             } else {
-                // Handle error responses from service
+                // Only return 400 for actual request errors (invalid parameters, etc.)
                 res.status(400).json(result);
             }
 

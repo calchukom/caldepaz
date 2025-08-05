@@ -813,14 +813,19 @@ export class PaymentService {
                 console.error('Status:', (error as any).response.status);
 
                 if ((error as any).response.status === 400) {
+                    // M-Pesa returns 400 for expired or invalid checkout request IDs
+                    // This is a valid response, not an error, so return success: true
                     return {
-                        success: false,
-                        error: 'Invalid checkout request ID',
-                        message: 'The provided checkout request ID is not valid or has expired',
+                        success: true,
                         data: {
                             checkout_request_id: checkoutRequestId,
-                            payment_status: 'failed',
-                            error_message: 'Invalid or expired checkout request ID',
+                            payment_status: 'expired',
+                            mpesa_receipt_number: null,
+                            amount: null,
+                            phone_number: null,
+                            result_code: '400',
+                            result_description: 'Checkout request ID is invalid or expired',
+                            error_message: 'The checkout request ID has expired or is no longer valid',
                             timestamp: new Date().toISOString()
                         }
                     };
