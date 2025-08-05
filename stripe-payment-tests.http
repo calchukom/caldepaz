@@ -1,0 +1,341 @@
+# ============================================================================
+# COMPREHENSIVE STRIPE PAYMENT ENDPOINT TESTS
+# Vehicle Rental Backend API - All Stripe Endpoints
+# Base URL: http://localhost:7000
+# ============================================================================
+
+### Variables
+@baseUrl = http://localhost:7000
+@testEmail = test@example.com
+@testPassword = password123
+@adminEmail = admin@vehiclerental.com
+@adminPassword = admin123
+
+### 1. HEALTH CHECK - Verify server is running
+GET {{baseUrl}}/health
+Content-Type: application/json
+
+### 2. GET PAYMENT CONFIG - Public endpoint (should work without auth)
+GET {{baseUrl}}/api/payments/config
+Content-Type: application/json
+
+### 3. REGISTER TEST USER - Create account for testing
+POST {{baseUrl}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}",
+  "first_name": "Test",
+  "last_name": "User",
+  "phone": "+1234567890",
+  "address": "123 Test Street"
+}
+
+### 4. LOGIN TEST USER - Get JWT token
+# @name loginUser
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+### 5. LOGIN ADMIN USER - Get admin JWT token
+# @name loginAdmin
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### ============================================================================
+### ORIGINAL STRIPE ENDPOINTS
+### ============================================================================
+
+### 6. CREATE STRIPE PAYMENT INTENT - Core payment endpoint
+POST {{baseUrl}}/api/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001",
+  "amount": 100.00,
+  "currency": "usd",
+  "customer_email": "{{testEmail}}",
+  "metadata": {
+    "vehicle_id": "test-vehicle-123",
+    "rental_days": "3"
+  }
+}
+
+### 7. PROCESS STRIPE PAYMENT - Complete payment
+POST {{baseUrl}}/api/payments/stripe/process
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "payment_intent_id": "pi_test_example",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001",
+  "payment_method_id": "pm_card_visa"
+}
+
+### ============================================================================
+### ENHANCED STRIPE ENDPOINTS
+### ============================================================================
+
+### 8. CREATE STRIPE CHECKOUT SESSION - Enhanced payment flow
+POST {{baseUrl}}/api/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440002",
+  "amount": 150.00,
+  "currency": "usd",
+  "customer_email": "{{testEmail}}",
+  "success_url": "http://localhost:3000/booking/success",
+  "cancel_url": "http://localhost:3000/booking/cancel",
+  "metadata": {
+    "vehicle_id": "premium-vehicle-456",
+    "rental_days": "5"
+  }
+}
+
+### 9. CREATE STRIPE CUSTOMER - Customer management
+POST {{baseUrl}}/api/payments/stripe/customer
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "email": "{{testEmail}}",
+  "name": "Test User",
+  "phone": "+1234567890",
+  "metadata": {
+    "user_type": "premium",
+    "registration_date": "2025-08-03"
+  }
+}
+
+### 10. CREATE STRIPE SUBSCRIPTION - Recurring payments
+POST {{baseUrl}}/api/payments/stripe/subscription
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "customer_id": "cus_test_customer_id",
+  "price_id": "price_test_monthly_rental",
+  "metadata": {
+    "subscription_type": "monthly_rental",
+    "vehicle_category": "premium"
+  }
+}
+
+### ============================================================================
+### PAYMENT ANALYTICS & DASHBOARD (Admin Only)
+### ============================================================================
+
+### 11. GET PAYMENT ANALYTICS - Comprehensive analytics
+GET {{baseUrl}}/api/payments/analytics?start_date=2025-07-01&end_date=2025-08-03&payment_method=stripe
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 12. GET PAYMENT DASHBOARD - Dashboard data
+GET {{baseUrl}}/api/payments/dashboard?timeframe=month
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 13. GET REVENUE FORECAST - Revenue predictions
+GET {{baseUrl}}/api/payments/revenue-forecast?days=30
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 14. EXPORT PAYMENT DATA - Data export (JSON)
+GET {{baseUrl}}/api/payments/export?start_date=2025-07-01&end_date=2025-08-03&format=json&payment_method=stripe
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 15. EXPORT PAYMENT DATA - Data export (CSV)
+GET {{baseUrl}}/api/payments/export?start_date=2025-07-01&end_date=2025-08-03&format=csv&payment_method=stripe
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### ============================================================================
+### TESTING & MONITORING
+### ============================================================================
+
+### 16. TEST PAYMENT INTEGRATION - All systems test
+GET {{baseUrl}}/api/payments/test-integration?test_type=all
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 17. TEST STRIPE ONLY - Stripe-specific test
+GET {{baseUrl}}/api/payments/test-integration?test_type=stripe
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### ============================================================================
+### PAYMENT MANAGEMENT (Admin)
+### ============================================================================
+
+### 18. GET ALL PAYMENTS - Payment list
+GET {{baseUrl}}/api/payments?page=1&limit=10
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 19. GET PAYMENT STATISTICS - Payment stats
+GET {{baseUrl}}/api/payments/statistics?timeframe=month
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### 20. GET PENDING PAYMENTS - Pending payments
+GET {{baseUrl}}/api/payments/pending?page=1&limit=5
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.access_token}}
+
+### ============================================================================
+### WEBHOOK ENDPOINTS (Public - No Auth Required)
+### ============================================================================
+
+### 21. STRIPE WEBHOOK ORIGINAL - Standard webhook
+POST {{baseUrl}}/api/payments/stripe/webhook
+Content-Type: application/json
+Stripe-Signature: whsec_test_signature
+
+{
+  "id": "evt_test_webhook",
+  "object": "event",
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_test_payment_intent",
+      "amount": 10000,
+      "currency": "usd",
+      "status": "succeeded"
+    }
+  }
+}
+
+### 22. STRIPE WEBHOOK ENHANCED - Enhanced webhook
+POST {{baseUrl}}/api/payments/stripe/webhook-enhanced
+Content-Type: application/json
+Stripe-Signature: whsec_test_signature
+
+{
+  "id": "evt_test_enhanced_webhook",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_checkout_session",
+      "amount_total": 15000,
+      "currency": "usd",
+      "payment_status": "paid"
+    }
+  }
+}
+
+### ============================================================================
+### ERROR TESTING - Invalid Data
+### ============================================================================
+
+### 23. CREATE CHECKOUT SESSION - Missing required fields
+POST {{baseUrl}}/api/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "amount": 100.00
+}
+
+### 24. CREATE CUSTOMER - Invalid email
+POST {{baseUrl}}/api/payments/stripe/customer
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "email": "invalid-email",
+  "name": "Test User"
+}
+
+### 25. CREATE SUBSCRIPTION - Missing required fields
+POST {{baseUrl}}/api/payments/stripe/subscription
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "customer_id": "cus_test"
+}
+
+### ============================================================================
+### AUTHENTICATION TESTING
+### ============================================================================
+
+### 26. TEST WITHOUT AUTH - Should fail with 401
+POST {{baseUrl}}/api/payments/stripe/checkout-session
+Content-Type: application/json
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001",
+  "amount": 100.00
+}
+
+### 27. TEST WITH INVALID TOKEN - Should fail with 401
+POST {{baseUrl}}/api/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer invalid_token_here
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001",
+  "amount": 100.00
+}
+
+### 28. TEST ADMIN ENDPOINT AS USER - Should fail with 403
+GET {{baseUrl}}/api/payments/analytics
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+### ============================================================================
+### COMPREHENSIVE PAYMENT FLOW TEST
+### ============================================================================
+
+### 29. COMPLETE PAYMENT FLOW - Create booking first (requires booking endpoint)
+# This would typically require creating a booking first, then processing payment
+# POST {{baseUrl}}/api/bookings
+# Content-Type: application/json
+# Authorization: Bearer {{loginUser.response.body.access_token}}
+# {
+#   "vehicle_id": "vehicle-123",
+#   "start_date": "2025-08-10",
+#   "end_date": "2025-08-13",
+#   "total_amount": 300.00
+# }
+
+### 30. PROCESS UNIFIED PAYMENT - Generic payment processor
+POST {{baseUrl}}/api/payments/process
+Content-Type: application/json
+Authorization: Bearer {{loginUser.response.body.access_token}}
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001",
+  "payment_method": "stripe",
+  "amount": 200.00,
+  "currency": "usd",
+  "payment_details": {
+    "payment_method_id": "pm_card_visa_debit",
+    "save_payment_method": true
+  }
+}
+
+# ============================================================================
+# NOTES FOR TESTING:
+# 1. Run tests in order (1-30) for best results
+# 2. Replace {{loginUser.response.body.access_token}} with actual JWT tokens
+# 3. Update booking_id values with real UUIDs from your database
+# 4. Admin endpoints require admin-level JWT tokens
+# 5. Webhook endpoints are public but require proper Stripe signatures in production
+# 6. Use Stripe test payment methods: pm_card_visa, pm_card_visa_debit, etc.
+# ============================================================================

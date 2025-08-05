@@ -2,25 +2,30 @@ import { z } from 'zod';
 
 // Stripe Payment Intent Schema
 export const createStripePaymentSchema = z.object({
-    amount: z.number().positive('Amount must be a positive number'),
-    booking_id: z.string().uuid('Booking ID must be a valid UUID'),
-    currency: z.string().length(3, 'Currency must be a 3-letter code').optional().default('usd'),
-    metadata: z.record(z.string()).optional(),
+    body: z.object({
+        amount: z.number().positive('Amount must be a positive number'),
+        booking_id: z.string().uuid('Booking ID must be a valid UUID'),
+        currency: z.string().length(3, 'Currency must be a 3-letter code').optional().default('usd'),
+        customer_email: z.string().email().optional(),
+        metadata: z.record(z.string()).optional(),
+    })
 });
 
 // M-Pesa Payment Schema
 export const processMpesaPaymentSchema = z.object({
-    payment_id: z.string().uuid('Payment ID must be a valid UUID'),
-    phone_number: z.string()
-        .regex(/^(\+254|254|0)?[17]\d{8}$/, 'Invalid Kenyan phone number format')
-        .transform(val => {
-            // Normalize phone number to 254XXXXXXXXX format
-            const cleaned = val.replace(/\D/g, '');
-            if (cleaned.startsWith('254')) return cleaned;
-            if (cleaned.startsWith('0')) return '254' + cleaned.slice(1);
-            if (cleaned.startsWith('7') || cleaned.startsWith('1')) return '254' + cleaned;
-            throw new Error('Invalid phone number');
-        }),
+    body: z.object({
+        payment_id: z.string().uuid('Payment ID must be a valid UUID'),
+        phone_number: z.string()
+            .regex(/^(\+254|254|0)?[17]\d{8}$/, 'Invalid Kenyan phone number format')
+            .transform(val => {
+                // Normalize phone number to 254XXXXXXXXX format
+                const cleaned = val.replace(/\D/g, '');
+                if (cleaned.startsWith('254')) return cleaned;
+                if (cleaned.startsWith('0')) return '254' + cleaned.slice(1);
+                if (cleaned.startsWith('7') || cleaned.startsWith('1')) return '254' + cleaned;
+                throw new Error('Invalid phone number');
+            }),
+    })
 });
 
 // M-Pesa STK Push Schema (booking-based)
@@ -44,49 +49,55 @@ export const initiateMpesaStkPushSchema = z.object({
 
 // Unified Process Payment Schema
 export const processPaymentSchema = z.object({
-    payment_method: z.enum(['stripe', 'mpesa'], {
-        errorMap: () => ({ message: 'Payment method must be either stripe or mpesa' })
-    }),
-    // Stripe-specific fields
-    amount: z.number().positive().optional(),
-    booking_id: z.string().uuid().optional(),
-    currency: z.string().length(3).optional(),
-    metadata: z.record(z.string()).optional(),
-    // M-Pesa-specific fields
-    payment_id: z.string().uuid().optional(),
-    phone_number: z.string().optional(),
-}).refine((data) => {
-    if (data.payment_method === 'stripe') {
-        return data.amount && data.booking_id;
-    }
-    if (data.payment_method === 'mpesa') {
-        return data.payment_id && data.phone_number;
-    }
-    return false;
-}, {
-    message: 'Required fields missing for the selected payment method',
+    body: z.object({
+        payment_method: z.enum(['stripe', 'mpesa'], {
+            errorMap: () => ({ message: 'Payment method must be either stripe or mpesa' })
+        }),
+        // Stripe-specific fields
+        amount: z.number().positive().optional(),
+        booking_id: z.string().uuid().optional(),
+        currency: z.string().length(3).optional(),
+        metadata: z.record(z.string()).optional(),
+        // M-Pesa-specific fields
+        payment_id: z.string().uuid().optional(),
+        phone_number: z.string().optional(),
+    }).refine((data) => {
+        if (data.payment_method === 'stripe') {
+            return data.amount && data.booking_id;
+        }
+        if (data.payment_method === 'mpesa') {
+            return data.payment_id && data.phone_number;
+        }
+        return false;
+    }, {
+        message: 'Required fields missing for the selected payment method',
+    })
 });
 
 // Create Payment Record Schema
 export const createPaymentSchema = z.object({
-    booking_id: z.string().uuid('Booking ID must be a valid UUID'),
-    amount: z.number().positive('Amount must be a positive number').or(
-        z.string().regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid decimal')
-            .transform(val => parseFloat(val))
-    ),
-    payment_method: z.enum(['stripe', 'mpesa', 'cash', 'bank_transfer', 'credit_card']),
-    payment_status: z.enum(['pending', 'completed', 'failed', 'cancelled']).default('pending'),
-    currency: z.string().length(3).default('USD'),
-    external_transaction_id: z.string().optional(),
-    metadata: z.record(z.any()).optional(),
+    body: z.object({
+        booking_id: z.string().uuid('Booking ID must be a valid UUID'),
+        amount: z.number().positive('Amount must be a positive number').or(
+            z.string().regex(/^\d+(\.\d{1,2})?$/, 'Amount must be a valid decimal')
+                .transform(val => parseFloat(val))
+        ),
+        payment_method: z.enum(['stripe', 'mpesa', 'cash', 'bank_transfer', 'credit_card']),
+        payment_status: z.enum(['pending', 'completed', 'failed', 'cancelled']).default('pending'),
+        currency: z.string().length(3).default('USD'),
+        external_transaction_id: z.string().optional(),
+        metadata: z.record(z.any()).optional(),
+    })
 });
 
 // Update Payment Schema
 export const updatePaymentSchema = z.object({
-    payment_status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
-    external_transaction_id: z.string().optional(),
-    failure_reason: z.string().optional(),
-    metadata: z.record(z.any()).optional(),
+    body: z.object({
+        payment_status: z.enum(['pending', 'completed', 'failed', 'cancelled']).optional(),
+        external_transaction_id: z.string().optional(),
+        failure_reason: z.string().optional(),
+        metadata: z.record(z.any()).optional(),
+    })
 });
 
 // Payment Query Schema

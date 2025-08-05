@@ -45,14 +45,34 @@ export interface EmailResponse {
   error?: any;
 }
 
-// Create reusable transporter
+// Create reusable transporter with enhanced configuration for production
 const createTransporter = () => {
+  // Validate required environment variables
+  if (!process.env.EMAIL_SENDER) {
+    throw new Error('EMAIL_SENDER environment variable is required');
+  }
+
+  if (!process.env.EMAIL_PASSWORD) {
+    throw new Error('EMAIL_PASSWORD environment variable is required');
+  }
+
   const transporter = nodemailer.createTransport({
     service: 'Gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // Use STARTTLS
     auth: {
       user: process.env.EMAIL_SENDER,
       pass: process.env.EMAIL_PASSWORD,
     },
+    tls: {
+      rejectUnauthorized: false // Allow self-signed certificates in production
+    },
+    connectionTimeout: 60000, // 60 seconds
+    greetingTimeout: 30000,   // 30 seconds
+    socketTimeout: 75000,     // 75 seconds
+    logger: process.env.NODE_ENV === 'development', // Enable logging in development
+    debug: process.env.NODE_ENV === 'development'   // Enable debug in development
   });
 
   return transporter;
@@ -201,12 +221,18 @@ const generateGenericEmailTemplate = (data: EmailData): string => {
   `;
 };
 
-// Main function to send emails
+// Main function to send emails with enhanced error handling and retry logic
 export const sendEmail = async (emailRequest: EmailRequest): Promise<EmailResponse> => {
   const { to, subject, template, data, cc, bcc, attachments } = emailRequest;
 
   try {
     logger.info(LogCategory.EMAIL, `Sending ${template} email to: ${to}`);
+
+    // Validate email address format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(to)) {
+      throw new Error(`Invalid email address format: ${to}`);
+    }
 
     let htmlContent = '';
 
@@ -230,10 +256,31 @@ export const sendEmail = async (emailRequest: EmailRequest): Promise<EmailRespon
         break;
     }
 
-    // Create transporter
-    const transporter = createTransporter();
+    // Create transporter with error handling
+    let transporter;
+    try {
+      transporter = createTransporter();
+    } catch (error) {
+      logger.error(LogCategory.EMAIL, `Failed to create email transporter: ${error}`);
+      return {
+        success: false,
+        message: 'Email configuration error',
+        error: error instanceof Error ? error.message : 'Unknown transporter error'
+      };
+    }
 
-    // Setup email data
+    // Verify transporter configuration in production
+    if (process.env.NODE_ENV === 'production') {
+      try {
+        await transporter.verify();
+        logger.info(LogCategory.EMAIL, 'Email transporter verified successfully');
+      } catch (verifyError) {
+        logger.error(LogCategory.EMAIL, `Email transporter verification failed: ${verifyError}`);
+        // Continue anyway, as verification might fail in some environments but sending still works
+      }
+    }
+
+    // Setup email data with enhanced configuration
     const mailOptions = {
       from: `"Vehicle Rental System" <${process.env.EMAIL_SENDER}>`,
       to,
@@ -241,7 +288,12 @@ export const sendEmail = async (emailRequest: EmailRequest): Promise<EmailRespon
       html: htmlContent,
       cc,
       bcc,
-      attachments
+      attachments,
+      headers: {
+        'X-Mailer': 'Vehicle Rental System',
+        'X-Priority': '3',
+        'X-MSMail-Priority': 'Normal'
+      }
     };
 
     // Skip actual sending in test environment
@@ -253,21 +305,58 @@ export const sendEmail = async (emailRequest: EmailRequest): Promise<EmailRespon
       };
     }
 
-    // Send mail
-    await transporter.sendMail(mailOptions);
+    // Retry logic for production reliability
+    let lastError;
+    const maxRetries = 3;
 
-    logger.info(LogCategory.EMAIL, `Email sent successfully to: ${to}`);
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Send mail with timeout
+        const sendResult = await Promise.race([
+          transporter.sendMail(mailOptions),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Email sending timeout')), 120000) // 2 minutes timeout
+          )
+        ]);
+
+        logger.info(LogCategory.EMAIL, `Email sent successfully to: ${to} (attempt ${attempt})`);
+
+        // Log additional details in production for monitoring
+        if (process.env.NODE_ENV === 'production') {
+          logger.info(LogCategory.EMAIL, `Production email sent - MessageId: ${(sendResult as any).messageId}, Response: ${(sendResult as any).response}`);
+        }
+
+        return {
+          success: true,
+          message: 'Email sent successfully'
+        };
+      } catch (error) {
+        lastError = error;
+        logger.warn(LogCategory.EMAIL, `Email sending attempt ${attempt} failed for ${to}: ${error}`);
+
+        if (attempt < maxRetries) {
+          // Wait before retry (exponential backoff)
+          const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+          logger.info(LogCategory.EMAIL, `Retrying email send in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+
+    // All retries failed
+    logger.error(LogCategory.EMAIL, `Failed to send email to: ${to} after ${maxRetries} attempts - ${lastError}`);
     return {
-      success: true,
-      message: 'Email sent successfully'
+      success: false,
+      message: 'Failed to send email after multiple attempts',
+      error: lastError instanceof Error ? lastError.message : 'Unknown error'
     };
 
   } catch (error) {
-    logger.error(LogCategory.EMAIL, `Failed to send email to: ${to} - ${error}`);
+    logger.error(LogCategory.EMAIL, `Unexpected error sending email to: ${to} - ${error}`);
     return {
       success: false,
-      message: 'Failed to send email',
-      error
+      message: 'Unexpected email sending error',
+      error: error instanceof Error ? error.message : 'Unknown error'
     };
   }
 };

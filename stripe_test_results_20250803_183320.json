@@ -1,0 +1,25 @@
+{
+  "test_run": {
+    "timestamp": "2025-08-03T15:33:21Z",
+    "base_url": "http://localhost:7000/api",
+    "tests": {
+      "Server Health Check": {
+        "status": "FAILED",
+        "error": "{\"status\":\"healthy\",\"timestamp\":\"2025-08-03T15:33:23.421Z\",\"uptime\":618.088992,\"version\":\"1.0.0\",\"environment\":\"development\",\"memory\":{\"used\":38,\"total\":43,\"external\":6,\"rss\":41},\"cpu\":{\"usage\":{\"user\":5312000,\"system\":3437000}},\"services\":{\"database\":\"healthy\",\"redis\":\"healthy\",\"external_apis\":\"healthy\"}}HTTP_STATUS:200"
+      },
+      "Payment Config (Public)": {
+        "status": "FAILED",
+        "error": "{\"error\":\"Too many API requests for guest users. Please try again later.\",\"retryAfter\":60,\"limit\":40000000,\"windowMs\":60000,\"userType\":\"guest\",\"type\":\"API_RATE_LIMIT_EXCEEDED\"}HTTP_STATUS:429"
+      },
+      "Create Stripe Payment Intent": {
+        "status": "FAILED",
+        "error": "{\"error\":\"This endpoint has strict rate limiting. Please try again later.\",\"retryAfter\":60,\"limit\":10000000,\"windowMs\":60000,\"type\":\"RATE_LIMIT_EXCEEDED\"}"
+      },
+      "Process Stripe Payment (Structure Test)": {
+        "status": "FAILED",
+        "error": "{\"error\":\"This endpoint has strict rate limiting. Please try again later.\",\"retryAfter\":60,\"limit\":10000000,\"windowMs\":60000,\"type\":\"RATE_LIMIT_EXCEEDED\"}"
+      },
+      "Create Stripe Customer": {
+        "status": "FAILED",
+        "error": "{\"success\":false,\"message\":\"Route POST /api/payments/stripe/customer not found not found\",\"timestamp\":\"2025-08-03T15:33:36.202Z\",\"error\":{\"code\":\"NOT_FOUND\"}}"
+      },

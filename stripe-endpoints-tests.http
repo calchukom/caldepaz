@@ -1,0 +1,392 @@
+###
+### COMPREHENSIVE STRIPE PAYMENT ENDPOINTS TEST
+### Copy these requests to your REST client (VS Code REST Client, Postman, etc.)
+### Make sure your server is running on http://localhost:7000
+###
+
+@baseUrl = http://localhost:7000/api
+@adminEmail = calebogeto1@gmail.com
+@adminPassword = 123456
+@testEmail = testuser@example.com  
+@testPassword = 123456
+
+###
+### STEP 1: AUTHENTICATION
+###
+
+### Admin Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+###
+### Test User Login (create user first if needed)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}",
+  "fullName": "Test User"
+}
+
+###
+### Test User Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{testEmail}}",
+  "password": "{{testPassword}}"
+}
+
+###
+### STEP 2: PUBLIC ENDPOINTS
+###
+
+### Health Check
+GET {{baseUrl}}/../health
+
+###
+### Get Payment Configuration (Public)
+GET {{baseUrl}}/payments/config
+
+###
+### STEP 3: STRIPE CORE ENDPOINTS (Replace YOUR_USER_TOKEN)
+###
+
+### Create Stripe Payment Intent
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 50.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001"
+}
+
+###
+### Process Stripe Payment (Will fail without real payment method - testing structure)
+POST {{baseUrl}}/payments/stripe/process
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "payment_intent_id": "pi_test_123456789",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440001"
+}
+
+###
+### STEP 4: ENHANCED STRIPE FEATURES
+###
+
+### Create Stripe Customer
+POST {{baseUrl}}/payments/stripe/customer
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "email": "customer@example.com",
+  "name": "Test Customer",
+  "phone": "+1234567890",
+  "metadata": {
+    "source": "api_test"
+  }
+}
+
+###
+### Create Stripe Checkout Session
+POST {{baseUrl}}/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440002",
+  "amount": 75.00,
+  "currency": "usd",
+  "customer_email": "customer@example.com",
+  "success_url": "http://localhost:3000/booking/success",
+  "cancel_url": "http://localhost:3000/booking/cancel",
+  "metadata": {
+    "booking_type": "vehicle_rental",
+    "test": "true"
+  }
+}
+
+###
+### Create Stripe Subscription (Will fail without valid IDs - testing structure)
+POST {{baseUrl}}/payments/stripe/subscription
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "customer_id": "cus_test_123456789",
+  "price_id": "price_test_123456789",
+  "metadata": {
+    "subscription_type": "monthly_rental"
+  }
+}
+
+###
+### STEP 5: ANALYTICS AND DASHBOARD (Replace YOUR_ADMIN_TOKEN)
+###
+
+### Get Payment Analytics
+GET {{baseUrl}}/payments/analytics?start_date=2025-07-01&end_date=2025-08-01&payment_method=stripe
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Get Payment Dashboard
+GET {{baseUrl}}/payments/dashboard?timeframe=week
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Get Revenue Forecast
+GET {{baseUrl}}/payments/revenue-forecast?days=30
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Export Payment Data (JSON)
+GET {{baseUrl}}/payments/export?format=json&start_date=2025-07-01&end_date=2025-08-01
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Export Payment Data (CSV)
+GET {{baseUrl}}/payments/export?format=csv&start_date=2025-07-01&end_date=2025-08-01
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### STEP 6: INTEGRATION TESTS
+###
+
+### Test All Payment Integrations
+GET {{baseUrl}}/payments/test-integration?test_type=all
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Test Stripe Integration Only
+GET {{baseUrl}}/payments/test-integration?test_type=stripe
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Test Database Integration
+GET {{baseUrl}}/payments/test-integration?test_type=database
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### STEP 7: PAYMENT MANAGEMENT
+###
+
+### Get All Payments
+GET {{baseUrl}}/payments?page=1&limit=10
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Get Payment Statistics
+GET {{baseUrl}}/payments/statistics?timeframe=month
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Get Pending Payments
+GET {{baseUrl}}/payments/pending?page=1&limit=5
+Authorization: Bearer YOUR_ADMIN_TOKEN
+
+###
+### Get User Payments (Replace USER_ID)
+GET {{baseUrl}}/payments/user/USER_ID
+Authorization: Bearer YOUR_USER_TOKEN
+
+###
+### STEP 8: UNIFIED PAYMENT PROCESSING
+###
+
+### Process Payment (Unified - Stripe)
+POST {{baseUrl}}/payments/process
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "payment_method": "stripe",
+  "amount": 100.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440003",
+  "metadata": {
+    "test": "unified_payment"
+  }
+}
+
+###
+### STEP 9: STRIPE WEBHOOK TESTING (Public)
+###
+
+### Test Stripe Webhook (Structure - will fail without proper signature)
+POST {{baseUrl}}/payments/stripe/webhook
+Content-Type: application/json
+Stripe-Signature: t=1691234567,v1=test_signature
+
+{
+  "id": "evt_test_webhook",
+  "object": "event",
+  "type": "payment_intent.succeeded",
+  "data": {
+    "object": {
+      "id": "pi_test_123456789",
+      "object": "payment_intent",
+      "amount": 5000,
+      "currency": "usd",
+      "status": "succeeded"
+    }
+  }
+}
+
+###
+### Test Enhanced Stripe Webhook
+POST {{baseUrl}}/payments/stripe/webhook-enhanced
+Content-Type: application/json
+Stripe-Signature: t=1691234567,v1=test_signature
+
+{
+  "id": "evt_test_enhanced",
+  "object": "event",
+  "type": "checkout.session.completed",
+  "data": {
+    "object": {
+      "id": "cs_test_123456789",
+      "object": "checkout.session",
+      "payment_status": "paid",
+      "amount_total": 7500,
+      "currency": "usd"
+    }
+  }
+}
+
+###
+### STEP 10: REAL STRIPE TESTING (With Test Cards)
+###
+
+### Create Payment Intent for Test Card
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 25.99,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440004",
+  "metadata": {
+    "test_card": "4242424242424242",
+    "description": "Test rental payment"
+  }
+}
+
+###
+### Create Checkout Session for Test Payment
+POST {{baseUrl}}/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "booking_id": "550e8400-e29b-41d4-a716-446655440005",
+  "amount": 199.99,
+  "currency": "usd",
+  "customer_email": "test@example.com",
+  "success_url": "http://localhost:3000/booking/success?session_id={CHECKOUT_SESSION_ID}",
+  "cancel_url": "http://localhost:3000/booking/cancel",
+  "metadata": {
+    "vehicle_id": "test_vehicle_123",
+    "rental_days": "3",
+    "test_environment": "true"
+  }
+}
+
+###
+### STEP 11: ERROR HANDLING TESTS
+###
+
+### Test Invalid Amount
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": -50.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440006"
+}
+
+###
+### Test Missing Required Fields
+POST {{baseUrl}}/payments/stripe/checkout-session
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 75.00
+}
+
+###
+### Test Invalid UUID
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 50.00,
+  "currency": "usd",
+  "booking_id": "invalid-uuid"
+}
+
+###
+### Test Unauthorized Access (No Token)
+GET {{baseUrl}}/payments/analytics
+
+###
+### Test Admin-Only Access with User Token
+GET {{baseUrl}}/payments/dashboard
+Authorization: Bearer YOUR_USER_TOKEN
+
+###
+### STEP 12: LOAD TESTING SAMPLE
+###
+
+### Multiple rapid requests (be careful with rate limiting)
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 10.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440007"
+}
+
+###
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 15.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440008"
+}
+
+###
+POST {{baseUrl}}/payments/stripe/create-intent
+Content-Type: application/json
+Authorization: Bearer YOUR_USER_TOKEN
+
+{
+  "amount": 20.00,
+  "currency": "usd",
+  "booking_id": "550e8400-e29b-41d4-a716-446655440009"
+}
+
+###
+### END OF TESTS
+###

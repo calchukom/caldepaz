@@ -1,8 +1,8 @@
 import Stripe from 'stripe';
 import axios from 'axios';
-import { eq, and, desc, sql } from 'drizzle-orm';
+import { eq, and, desc, sql, gte, lte } from 'drizzle-orm';
 import { db } from '../drizzle/db';
-import { payments, bookings } from '../drizzle/schema';
+import { payments, bookings, users } from '../drizzle/schema';
 import { logger } from '../middleware/logger';
 import { AppError, ErrorFactory } from '../middleware/appError';
 
@@ -1100,6 +1100,612 @@ export class PaymentService {
                 error: error instanceof Error ? error.message : 'Unknown error',
             });
             throw ErrorFactory.internal('Failed to retrieve pending payments');
+        }
+    }
+
+    // ============================================================================
+    // ENHANCED STRIPE FEATURES
+    // ============================================================================
+
+    /**
+     * Create Stripe Checkout Session for vehicle rental
+     */
+    async createCheckoutSession(data: {
+        booking_id: string;
+        amount: number;
+        currency?: string;
+        customer_email?: string;
+        success_url?: string;
+        cancel_url?: string;
+        metadata?: Record<string, string>;
+    }) {
+        try {
+            const {
+                booking_id,
+                amount,
+                currency = 'usd',
+                customer_email,
+                success_url = process.env.STRIPE_SUCCESS_URL,
+                cancel_url = process.env.STRIPE_CANCEL_URL,
+                metadata = {}
+            } = data;
+
+            // Get booking details for session description
+            const booking = await db
+                .select({
+                    booking_id: bookings.booking_id,
+                    user_id: bookings.user_id,
+                    vehicle_id: bookings.vehicle_id,
+                    booking_date: bookings.booking_date,
+                    return_date: bookings.return_date,
+                    total_amount: bookings.total_amount,
+                })
+                .from(bookings)
+                .where(eq(bookings.booking_id, booking_id))
+                .limit(1);
+
+            if (!booking.length) {
+                throw ErrorFactory.notFound('Booking not found');
+            }
+
+            const bookingData = booking[0];
+            const startDate = new Date(bookingData.booking_date).toLocaleDateString();
+            const endDate = new Date(bookingData.return_date).toLocaleDateString();
+
+            const session = await this.stripe.checkout.sessions.create({
+                mode: 'payment',
+                payment_method_types: ['card'],
+                customer_email: customer_email,
+                line_items: [
+                    {
+                        price_data: {
+                            currency: currency,
+                            product_data: {
+                                name: 'Vehicle Rental',
+                                description: `Rental from ${startDate} to ${endDate}`,
+                                metadata: {
+                                    booking_id: booking_id,
+                                    vehicle_id: bookingData.vehicle_id,
+                                },
+                            },
+                            unit_amount: Math.round(amount * 100), // Convert to cents
+                        },
+                        quantity: 1,
+                    },
+                ],
+                metadata: {
+                    booking_id,
+                    user_id: bookingData.user_id,
+                    ...metadata,
+                },
+                success_url: `${success_url}?session_id={CHECKOUT_SESSION_ID}&booking_id=${booking_id}`,
+                cancel_url: `${cancel_url}?booking_id=${booking_id}`,
+                expires_at: Math.floor(Date.now() / 1000) + (30 * 60), // 30 minutes
+            });
+
+            logger.info('Stripe Checkout Session created', {
+                module: 'payments',
+                sessionId: session.id,
+                booking_id,
+                amount,
+                currency,
+            });
+
+            return {
+                session_id: session.id,
+                checkout_url: session.url,
+                expires_at: session.expires_at,
+                amount_total: session.amount_total ? session.amount_total / 100 : amount,
+                currency: session.currency || currency,
+            };
+        } catch (error) {
+            logger.error('Error creating Stripe Checkout Session', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                data,
+            });
+            throw error instanceof Error ? ErrorFactory.internal(error.message) : ErrorFactory.internal('Failed to create checkout session');
+        }
+    }
+
+    /**
+     * Create or update Stripe customer
+     */
+    async createOrUpdateCustomer(userData: {
+        user_id: string;
+        email: string;
+        name?: string;
+        phone?: string;
+        metadata?: Record<string, string>;
+    }) {
+        try {
+            const { user_id, email, name, phone, metadata = {} } = userData;
+
+            // Check if customer already exists
+            const existingCustomers = await this.stripe.customers.list({
+                email: email,
+                limit: 1,
+            });
+
+            let customer: Stripe.Customer;
+
+            if (existingCustomers.data.length > 0) {
+                // Update existing customer
+                customer = await this.stripe.customers.update(existingCustomers.data[0].id, {
+                    name: name,
+                    phone: phone,
+                    metadata: {
+                        user_id,
+                        ...metadata,
+                    },
+                });
+            } else {
+                // Create new customer
+                customer = await this.stripe.customers.create({
+                    email: email,
+                    name: name,
+                    phone: phone,
+                    metadata: {
+                        user_id,
+                        ...metadata,
+                    },
+                });
+            }
+
+            logger.info('Stripe customer created/updated', {
+                module: 'payments',
+                customer_id: customer.id,
+                user_id,
+                email,
+            });
+
+            return {
+                customer_id: customer.id,
+                email: customer.email,
+                name: customer.name,
+                created: customer.created,
+            };
+        } catch (error) {
+            logger.error('Error creating/updating Stripe customer', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                userData,
+            });
+            throw ErrorFactory.internal('Failed to create/update customer');
+        }
+    }
+
+    /**
+     * Create subscription for recurring rentals
+     */
+    async createSubscription(data: {
+        customer_id: string;
+        price_id: string;
+        user_id: string;
+        metadata?: Record<string, string>;
+    }) {
+        try {
+            const { customer_id, price_id, user_id, metadata = {} } = data;
+
+            const subscription = await this.stripe.subscriptions.create({
+                customer: customer_id,
+                items: [{ price: price_id }],
+                metadata: {
+                    user_id,
+                    ...metadata,
+                },
+                expand: ['latest_invoice.payment_intent'],
+            });
+
+            logger.info('Stripe subscription created', {
+                module: 'payments',
+                subscription_id: subscription.id,
+                customer_id,
+                user_id,
+            });
+
+            return {
+                subscription_id: subscription.id,
+                status: subscription.status,
+                current_period_start: (subscription as any).current_period_start,
+                current_period_end: (subscription as any).current_period_end,
+                latest_invoice: subscription.latest_invoice,
+            };
+        } catch (error) {
+            logger.error('Error creating subscription', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                data,
+            });
+            throw ErrorFactory.internal('Failed to create subscription');
+        }
+    }
+
+    /**
+     * Get comprehensive payment analytics
+     */
+    async getPaymentAnalytics(filters: {
+        start_date?: Date;
+        end_date?: Date;
+        payment_method?: string;
+        user_id?: string;
+        currency?: string;
+    } = {}) {
+        try {
+            const {
+                start_date = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000), // 30 days ago
+                end_date = new Date(),
+                payment_method,
+                user_id,
+                currency
+            } = filters;
+
+            // Build WHERE conditions
+            const whereConditions = [
+                sql`created_at >= ${start_date}`,
+                sql`created_at <= ${end_date}`
+            ];
+
+            if (payment_method) {
+                whereConditions.push(eq(payments.payment_method, payment_method as any));
+            }
+
+            if (user_id) {
+                whereConditions.push(eq(payments.user_id, user_id));
+            }
+
+            if (currency) {
+                whereConditions.push(eq(payments.currency, currency));
+            }
+
+            // Get overall statistics
+            const overallStats = await db
+                .select({
+                    total_transactions: sql<number>`count(*)`,
+                    total_revenue: sql<number>`sum(CAST(amount AS DECIMAL))`,
+                    avg_transaction_value: sql<number>`avg(CAST(amount AS DECIMAL))`,
+                    successful_transactions: sql<number>`count(*) filter (where payment_status = 'completed')`,
+                    failed_transactions: sql<number>`count(*) filter (where payment_status = 'failed')`,
+                    pending_transactions: sql<number>`count(*) filter (where payment_status = 'pending')`,
+                    refunded_transactions: sql<number>`count(*) filter (where payment_status = 'refunded')`,
+                    total_refunded: sql<number>`sum(CAST(amount AS DECIMAL)) filter (where payment_status = 'refunded')`,
+                })
+                .from(payments)
+                .where(and(...whereConditions));
+
+            // Get payment method breakdown
+            const paymentMethodStats = await db
+                .select({
+                    payment_method: payments.payment_method,
+                    transaction_count: sql<number>`count(*)`,
+                    total_amount: sql<number>`sum(CAST(amount AS DECIMAL))`,
+                    success_rate: sql<number>`(count(*) filter (where payment_status = 'completed'))::float / count(*) * 100`,
+                })
+                .from(payments)
+                .where(and(...whereConditions))
+                .groupBy(payments.payment_method);
+
+            // Get daily revenue trends
+            const dailyRevenue = await db
+                .select({
+                    date: sql<string>`DATE(created_at)`,
+                    total_revenue: sql<number>`sum(CAST(amount AS DECIMAL)) filter (where payment_status = 'completed')`,
+                    transaction_count: sql<number>`count(*) filter (where payment_status = 'completed')`,
+                    avg_transaction_value: sql<number>`avg(CAST(amount AS DECIMAL)) filter (where payment_status = 'completed')`,
+                })
+                .from(payments)
+                .where(and(...whereConditions))
+                .groupBy(sql`DATE(created_at)`)
+                .orderBy(sql`DATE(created_at)`);
+
+            // Get currency breakdown
+            const currencyStats = await db
+                .select({
+                    currency: payments.currency,
+                    transaction_count: sql<number>`count(*)`,
+                    total_amount: sql<number>`sum(CAST(amount AS DECIMAL))`,
+                })
+                .from(payments)
+                .where(and(...whereConditions, eq(payments.payment_status, 'completed')))
+                .groupBy(payments.currency);
+
+            // Calculate success rate and other metrics
+            const stats = overallStats[0];
+            const successRate = stats ? (stats.successful_transactions / (stats.total_transactions || 1)) * 100 : 0;
+            const conversionRate = stats ? (stats.successful_transactions / (stats.total_transactions || 1)) * 100 : 0;
+
+            return {
+                period: {
+                    start_date,
+                    end_date,
+                    days: Math.ceil((end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24)),
+                },
+                filters,
+                overall_statistics: {
+                    ...stats,
+                    success_rate: Math.round(successRate * 100) / 100,
+                    conversion_rate: Math.round(conversionRate * 100) / 100,
+                    average_daily_revenue: stats ? Math.round((stats.total_revenue || 0) / Math.max(1, Math.ceil((end_date.getTime() - start_date.getTime()) / (1000 * 60 * 60 * 24)))) : 0,
+                },
+                payment_method_breakdown: paymentMethodStats,
+                daily_trends: dailyRevenue,
+                currency_breakdown: currencyStats,
+                insights: this.generatePaymentInsights(stats, paymentMethodStats, dailyRevenue),
+            };
+        } catch (error) {
+            logger.error('Error generating payment analytics', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                filters,
+            });
+            throw ErrorFactory.internal('Failed to generate payment analytics');
+        }
+    }
+
+    /**
+     * Generate payment insights
+     */
+    private generatePaymentInsights(
+        overallStats: any,
+        methodStats: any[],
+        dailyTrends: any[]
+    ) {
+        const insights = [];
+
+        if (overallStats) {
+            // Success rate insights
+            const successRate = (overallStats.successful_transactions / (overallStats.total_transactions || 1)) * 100;
+            if (successRate > 95) {
+                insights.push({
+                    type: 'positive',
+                    metric: 'success_rate',
+                    message: `Excellent success rate of ${Math.round(successRate * 100) / 100}%`,
+                    value: successRate,
+                });
+            } else if (successRate < 85) {
+                insights.push({
+                    type: 'warning',
+                    metric: 'success_rate',
+                    message: `Low success rate of ${Math.round(successRate * 100) / 100}%. Consider investigating failed payments.`,
+                    value: successRate,
+                });
+            }
+
+            // Revenue insights
+            if (overallStats.total_revenue > 10000) {
+                insights.push({
+                    type: 'positive',
+                    metric: 'revenue',
+                    message: `Strong revenue performance with $${Math.round(overallStats.total_revenue).toLocaleString()}`,
+                    value: overallStats.total_revenue,
+                });
+            }
+        }
+
+        // Payment method insights
+        if (methodStats.length > 1) {
+            const topMethod = methodStats.reduce((prev, current) =>
+                (prev.total_amount > current.total_amount) ? prev : current
+            );
+            insights.push({
+                type: 'info',
+                metric: 'payment_method',
+                message: `${topMethod.payment_method} is the top payment method by revenue`,
+                value: topMethod.total_amount,
+            });
+        }
+
+        return insights;
+    }
+
+    /**
+     * Enhanced webhook handler with booking status updates
+     */
+    async handleEnhancedStripeWebhook(body: string, signature: string) {
+        try {
+            const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+            if (!endpointSecret) {
+                throw ErrorFactory.internal('Stripe webhook secret not configured');
+            }
+
+            const event = this.stripe.webhooks.constructEvent(body, signature, endpointSecret);
+
+            logger.info('Processing enhanced Stripe webhook', {
+                module: 'payments',
+                event_type: event.type,
+                event_id: event.id,
+            });
+
+            switch (event.type) {
+                case 'checkout.session.completed':
+                    await this.handleCheckoutSessionCompleted(event.data.object as Stripe.Checkout.Session);
+                    break;
+
+                case 'payment_intent.succeeded':
+                    await this.updateBookingStatusOnPaymentSuccess(event.data.object as Stripe.PaymentIntent);
+                    break;
+
+                case 'payment_intent.payment_failed':
+                    await this.updateBookingStatusOnPaymentFailure(event.data.object as Stripe.PaymentIntent);
+                    break;
+
+                default:
+                    logger.info('Unhandled enhanced Stripe webhook event', {
+                        module: 'payments',
+                        eventType: event.type,
+                    });
+            }
+
+            return { received: true };
+        } catch (error) {
+            logger.error('Error handling enhanced Stripe webhook', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            throw error instanceof Error ? ErrorFactory.internal(error.message) : ErrorFactory.internal('Webhook processing failed');
+        }
+    }
+
+    /**
+     * Handle successful checkout session
+     */
+    private async handleCheckoutSessionCompleted(session: Stripe.Checkout.Session) {
+        try {
+            const booking_id = session.metadata?.booking_id;
+            const payment_intent_id = session.payment_intent as string;
+
+            if (!booking_id) {
+                logger.warn('Booking ID not found in checkout session metadata', {
+                    module: 'payments',
+                    sessionId: session.id,
+                });
+                return;
+            }
+
+            // Update payment record
+            const existingPayment = await db
+                .select()
+                .from(payments)
+                .where(and(
+                    eq(payments.booking_id, booking_id),
+                    eq(payments.payment_method, 'stripe')
+                ))
+                .limit(1);
+
+            if (existingPayment.length > 0) {
+                await db
+                    .update(payments)
+                    .set({
+                        payment_status: 'completed',
+                        transaction_id: payment_intent_id,
+                        updated_at: new Date(),
+                        metadata: JSON.stringify({
+                            checkout_session_id: session.id,
+                            payment_intent_id,
+                            customer_email: session.customer_email,
+                        }),
+                    })
+                    .where(eq(payments.payment_id, existingPayment[0].payment_id));
+            } else {
+                await db
+                    .insert(payments)
+                    .values({
+                        booking_id,
+                        user_id: session.metadata?.user_id || '',
+                        amount: ((session.amount_total || 0) / 100).toString(),
+                        currency: session.currency || 'usd',
+                        payment_method: 'stripe',
+                        payment_status: 'completed',
+                        transaction_id: payment_intent_id,
+                        metadata: JSON.stringify({
+                            checkout_session_id: session.id,
+                            payment_intent_id,
+                            customer_email: session.customer_email,
+                        }),
+                        created_at: new Date(),
+                        updated_at: new Date(),
+                    });
+            }
+
+            // Update booking status to confirmed
+            await db
+                .update(bookings)
+                .set({
+                    booking_status: 'confirmed',
+                    updated_at: new Date(),
+                })
+                .where(eq(bookings.booking_id, booking_id));
+
+            logger.info('Checkout session completed and booking confirmed', {
+                module: 'payments',
+                booking_id,
+                session_id: session.id,
+                amount: (session.amount_total || 0) / 100,
+            });
+        } catch (error) {
+            logger.error('Error handling checkout session completion', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                session_id: session.id,
+            });
+        }
+    }
+
+    /**
+     * Update booking status on successful payment
+     */
+    private async updateBookingStatusOnPaymentSuccess(paymentIntent: Stripe.PaymentIntent) {
+        try {
+            const booking_id = paymentIntent.metadata?.booking_id;
+
+            if (!booking_id) {
+                logger.warn('Booking ID not found in payment intent metadata', {
+                    module: 'payments',
+                    payment_intent_id: paymentIntent.id,
+                });
+                return;
+            }
+
+            // Update booking status to confirmed
+            await db
+                .update(bookings)
+                .set({
+                    booking_status: 'confirmed',
+                    updated_at: new Date(),
+                })
+                .where(eq(bookings.booking_id, booking_id));
+
+            logger.info('Booking confirmed after successful Stripe payment', {
+                module: 'payments',
+                booking_id,
+                payment_intent_id: paymentIntent.id,
+                amount: paymentIntent.amount / 100,
+            });
+        } catch (error) {
+            logger.error('Error updating booking status on payment success', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                payment_intent_id: paymentIntent.id,
+            });
+        }
+    }
+
+    /**
+     * Update booking status on failed payment
+     */
+    private async updateBookingStatusOnPaymentFailure(paymentIntent: Stripe.PaymentIntent) {
+        try {
+            const booking_id = paymentIntent.metadata?.booking_id;
+
+            if (!booking_id) {
+                logger.warn('Booking ID not found in payment intent metadata', {
+                    module: 'payments',
+                    payment_intent_id: paymentIntent.id,
+                });
+                return;
+            }
+
+            // Update booking status to payment_failed
+            await db
+                .update(bookings)
+                .set({
+                    booking_status: 'payment_failed',
+                    updated_at: new Date(),
+                })
+                .where(eq(bookings.booking_id, booking_id));
+
+            logger.info('Booking marked as payment failed', {
+                module: 'payments',
+                booking_id,
+                payment_intent_id: paymentIntent.id,
+                amount: paymentIntent.amount / 100,
+            });
+        } catch (error) {
+            logger.error('Error updating booking status on payment failure', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                payment_intent_id: paymentIntent.id,
+            });
         }
     }
 }

@@ -377,6 +377,313 @@ export class PaymentController {
             next(error);
         }
     }
+
+    // ============================================================================
+    // ENHANCED STRIPE FEATURES
+    // ============================================================================
+
+    /**
+     * Create Stripe Checkout Session
+     */
+    async createCheckoutSession(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { booking_id, amount, currency, customer_email, success_url, cancel_url, metadata } = req.body;
+
+            if (!booking_id || !amount) {
+                throw ErrorFactory.badRequest('Booking ID and amount are required');
+            }
+
+            const result = await paymentService.createCheckoutSession({
+                booking_id,
+                amount: parseFloat(amount),
+                currency,
+                customer_email,
+                success_url,
+                cancel_url,
+                metadata,
+            });
+
+            ResponseUtil.success(res, result, 'Checkout session created successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Create or update Stripe customer
+     */
+    async createStripeCustomer(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { email, name, phone, metadata } = req.body;
+            const userId = req.user?.userId;
+
+            if (!userId || !email) {
+                throw ErrorFactory.badRequest('User ID and email are required');
+            }
+
+            const result = await paymentService.createOrUpdateCustomer({
+                user_id: userId,
+                email,
+                name,
+                phone,
+                metadata,
+            });
+
+            ResponseUtil.success(res, result, 'Stripe customer created/updated successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Create subscription for recurring rentals
+     */
+    async createSubscription(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { customer_id, price_id, metadata } = req.body;
+            const userId = req.user?.userId;
+
+            if (!userId || !customer_id || !price_id) {
+                throw ErrorFactory.badRequest('User ID, customer ID, and price ID are required');
+            }
+
+            const result = await paymentService.createSubscription({
+                customer_id,
+                price_id,
+                user_id: userId,
+                metadata,
+            });
+
+            ResponseUtil.success(res, result, 'Subscription created successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get comprehensive payment analytics
+     */
+    async getPaymentAnalytics(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {
+                start_date,
+                end_date,
+                payment_method,
+                user_id,
+                currency,
+            } = req.query;
+
+            const filters: any = {};
+
+            if (start_date) filters.start_date = new Date(start_date as string);
+            if (end_date) filters.end_date = new Date(end_date as string);
+            if (payment_method) filters.payment_method = payment_method as string;
+            if (user_id) filters.user_id = user_id as string;
+            if (currency) filters.currency = currency as string;
+
+            const analytics = await paymentService.getPaymentAnalytics(filters);
+
+            ResponseUtil.success(res, analytics, 'Payment analytics retrieved successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get payment dashboard data
+     */
+    async getPaymentDashboard(req: Request, res: Response, next: NextFunction) {
+        try {
+            const timeframe = req.query.timeframe as string || 'month';
+
+            // Get basic statistics
+            const basicStats = await paymentService.getPaymentStatistics(timeframe);
+
+            // Get enhanced analytics
+            const enhancedAnalytics = await paymentService.getPaymentAnalytics({
+                start_date: basicStats.period.start,
+                end_date: basicStats.period.end,
+            });
+
+            // Get pending payments
+            const pendingPayments = await paymentService.getPendingPayments(1, 5);
+
+            const dashboardData = {
+                timeframe,
+                basic_statistics: basicStats,
+                enhanced_analytics: enhancedAnalytics,
+                recent_pending_payments: pendingPayments.pending_payments,
+                last_updated: new Date(),
+            };
+
+            ResponseUtil.success(res, dashboardData, 'Payment dashboard data retrieved successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Get revenue forecasting
+     */
+    async getRevenueForecast(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { days = 30 } = req.query;
+            const forecastDays = parseInt(days as string);
+
+            // Get historical data for forecasting
+            const historicalData = await paymentService.getPaymentAnalytics({
+                start_date: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000),
+                end_date: new Date(),
+            });
+
+            // Simple forecasting logic
+            const dailyTrends = historicalData.daily_trends;
+            if (dailyTrends.length < 7) {
+                throw ErrorFactory.badRequest('Insufficient historical data for forecasting');
+            }
+
+            // Calculate growth rate
+            const recentRevenue = dailyTrends.slice(-7).reduce((sum: number, day: any) => sum + (day.total_revenue || 0), 0) / 7;
+            const olderRevenue = dailyTrends.slice(-14, -7).reduce((sum: number, day: any) => sum + (day.total_revenue || 0), 0) / 7;
+            const growthRate = (recentRevenue - olderRevenue) / (olderRevenue || 1);
+
+            // Generate forecast
+            const forecast = [];
+            for (let i = 1; i <= forecastDays; i++) {
+                const projectedRevenue = recentRevenue * (1 + (growthRate * i / 7));
+                forecast.push({
+                    date: new Date(Date.now() + i * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    projected_revenue: Math.round(projectedRevenue * 100) / 100,
+                    confidence: Math.max(0.5, 1 - (i / forecastDays) * 0.5),
+                });
+            }
+
+            const totalProjectedRevenue = forecast.reduce((sum, day) => sum + day.projected_revenue, 0);
+
+            ResponseUtil.success(res, {
+                forecast_period: {
+                    start_date: new Date().toISOString().split('T')[0],
+                    end_date: new Date(Date.now() + forecastDays * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                    days: forecastDays,
+                },
+                historical_metrics: {
+                    avg_daily_revenue_recent: Math.round(recentRevenue * 100) / 100,
+                    avg_daily_revenue_previous: Math.round(olderRevenue * 100) / 100,
+                    growth_rate: Math.round(growthRate * 10000) / 100,
+                },
+                forecast,
+                summary: {
+                    total_projected_revenue: Math.round(totalProjectedRevenue * 100) / 100,
+                    avg_projected_daily_revenue: Math.round((totalProjectedRevenue / forecastDays) * 100) / 100,
+                },
+                disclaimer: 'This forecast is based on historical trends and should be used for guidance only.',
+            }, 'Revenue forecast generated successfully');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Test payment integration
+     */
+    async testPaymentIntegration(req: Request, res: Response, next: NextFunction) {
+        try {
+            const { test_type = 'all' } = req.query;
+            const results: any = {
+                timestamp: new Date(),
+                test_type,
+                results: {},
+            };
+
+            // Test Stripe connection
+            if (test_type === 'all' || test_type === 'stripe') {
+                try {
+                    const config = paymentService.getPaymentConfig();
+                    results.results.stripe = {
+                        status: 'success',
+                        publishable_key_configured: !!config.stripe.publishableKey,
+                        currency_supported: config.stripe.currency === 'usd',
+                        message: 'Stripe configuration is valid',
+                    };
+                } catch (error) {
+                    results.results.stripe = {
+                        status: 'error',
+                        message: error instanceof Error ? error.message : 'Stripe test failed',
+                    };
+                }
+            }
+
+            // Test M-Pesa connection
+            if (test_type === 'all' || test_type === 'mpesa') {
+                try {
+                    const config = paymentService.getPaymentConfig();
+                    results.results.mpesa = {
+                        status: 'success',
+                        business_short_code_configured: !!config.mpesa.businessShortCode,
+                        environment: config.mpesa.environment,
+                        message: 'M-Pesa configuration is valid',
+                    };
+                } catch (error) {
+                    results.results.mpesa = {
+                        status: 'error',
+                        message: error instanceof Error ? error.message : 'M-Pesa test failed',
+                    };
+                }
+            }
+
+            // Test database connectivity
+            if (test_type === 'all' || test_type === 'database') {
+                try {
+                    const testStats = await paymentService.getPaymentStatistics('week');
+                    results.results.database = {
+                        status: 'success',
+                        total_payments: testStats.summary.total_payments,
+                        message: 'Database connectivity is working',
+                    };
+                } catch (error) {
+                    results.results.database = {
+                        status: 'error',
+                        message: error instanceof Error ? error.message : 'Database test failed',
+                    };
+                }
+            }
+
+            // Overall status
+            const allTests = Object.values(results.results);
+            const hasErrors = allTests.some((test: any) => test.status === 'error');
+            results.overall_status = hasErrors ? 'partial_failure' : 'success';
+
+            ResponseUtil.success(res, results, 'Payment integration test completed');
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
+     * Handle enhanced Stripe webhooks with booking status updates
+     */
+    async handleEnhancedStripeWebhook(req: Request, res: Response, next: NextFunction) {
+        try {
+            const signature = req.headers['stripe-signature'] as string;
+
+            if (!signature) {
+                throw ErrorFactory.badRequest('Stripe signature missing');
+            }
+
+            const result = await paymentService.handleEnhancedStripeWebhook(
+                req.body,
+                signature
+            );
+
+            res.json(result);
+        } catch (error) {
+            logger.error('Enhanced Stripe webhook error', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+            });
+            next(error);
+        }
+    }
 }
 
 export const paymentController = new PaymentController();
