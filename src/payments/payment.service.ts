@@ -412,10 +412,12 @@ export class PaymentService {
     }
 
     /**
-     * Handle M-Pesa Callback
+     * Handle M-Pesa Callback with automatic email sending
      */
     async handleMpesaCallback(callbackData: any) {
         try {
+            console.log('📨 M-Pesa Callback received:', JSON.stringify(callbackData, null, 2));
+
             const { Body } = callbackData;
             const { stkCallback } = Body;
 
@@ -426,6 +428,8 @@ export class PaymentService {
                 ResultDesc,
                 CallbackMetadata,
             } = stkCallback;
+
+            console.log(`🔍 Processing callback for checkout: ${CheckoutRequestID}, result: ${ResultCode}`);
 
             // Find payment by checkout request ID
             const payment = await db
@@ -443,6 +447,7 @@ export class PaymentService {
             }
 
             const payment_id = payment[0].payment_id;
+            const booking_id = payment[0].booking_id;
 
             if (ResultCode === 0) {
                 // Payment successful
@@ -450,6 +455,13 @@ export class PaymentService {
                 const mpesaReceiptNumber = metadata.find((item: any) => item.Name === 'MpesaReceiptNumber')?.Value;
                 const transactionDate = metadata.find((item: any) => item.Name === 'TransactionDate')?.Value;
                 const phoneNumber = metadata.find((item: any) => item.Name === 'PhoneNumber')?.Value;
+                const amount = metadata.find((item: any) => item.Name === 'Amount')?.Value;
+
+                console.log('✅ Payment successful, updating records...', {
+                    mpesaReceiptNumber,
+                    amount,
+                    phoneNumber
+                });
 
                 await this.updatePaymentStatus(payment_id, 'completed', {
                     payment_method: 'mpesa',
@@ -458,18 +470,182 @@ export class PaymentService {
                         mpesa_receipt_number: mpesaReceiptNumber,
                         transaction_date: transactionDate,
                         phone_number: phoneNumber,
+                        amount: amount,
                         merchant_request_id: MerchantRequestID,
                         checkout_request_id: CheckoutRequestID,
                     },
                 });
+
+                // ============================================================================
+                // 📧 AUTOMATIC EMAIL RECEIPT INTEGRATION
+                // ============================================================================
+
+                try {
+                    if (booking_id) {
+                        console.log('📧 Sending email receipt for successful M-Pesa payment...');
+
+                        // Get booking details with user information
+                        const bookingDetails = await db
+                            .select({
+                                booking_id: bookings.booking_id,
+                                user_id: bookings.user_id,
+                                vehicle_id: bookings.vehicle_id,
+                                pickup_date: bookings.booking_date,
+                                return_date: bookings.return_date,
+                                total_amount: bookings.total_amount,
+                                booking_status: bookings.booking_status,
+                                user_email: users.email,
+                                user_name: users.firstname,
+                            })
+                            .from(bookings)
+                            .leftJoin(users, eq(bookings.user_id, users.user_id))
+                            .where(eq(bookings.booking_id, booking_id))
+                            .limit(1);
+
+                        if (bookingDetails.length && bookingDetails[0].user_email) {
+                            const booking = bookingDetails[0];
+
+                            // Generate receipt email content
+                            const receiptHtml = `
+                                <html>
+                                    <body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                                        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center;">
+                                            <h1>🚗 CARLEB CALEB VEHICLE RENT</h1>
+                                            <h2>M-Pesa Payment Receipt</h2>
+                                        </div>
+                                        
+                                        <div style="padding: 30px; background-color: #f9f9f9;">
+                                            <h3 style="color: #28a745;">✅ Payment Confirmed!</h3>
+                                            
+                                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Booking ID:</td>
+                                                    <td style="padding: 10px;">#${booking.booking_id}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Customer:</td>
+                                                    <td style="padding: 10px;">${booking.user_name || 'Customer'}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Pickup Date:</td>
+                                                    <td style="padding: 10px;">${new Date(booking.pickup_date).toLocaleDateString()}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Return Date:</td>
+                                                    <td style="padding: 10px;">${new Date(booking.return_date).toLocaleDateString()}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Total Amount:</td>
+                                                    <td style="padding: 10px; font-size: 18px; font-weight: bold; color: #28a745;">KES ${amount || booking.total_amount}</td>
+                                                </tr>
+                                            </table>
+
+                                            <h3 style="color: #007bff;">M-Pesa Payment Details</h3>
+                                            <table style="width: 100%; border-collapse: collapse;">
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">M-Pesa Receipt:</td>
+                                                    <td style="padding: 10px; color: #28a745; font-weight: bold;">${mpesaReceiptNumber}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Phone Number:</td>
+                                                    <td style="padding: 10px;">${phoneNumber}</td>
+                                                </tr>
+                                                <tr style="border-bottom: 1px solid #ddd;">
+                                                    <td style="padding: 10px; font-weight: bold;">Transaction Date:</td>
+                                                    <td style="padding: 10px;">${transactionDate ? new Date(parseInt(transactionDate)).toLocaleString() : new Date().toLocaleString()}</td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                        
+                                        <div style="background-color: #667eea; color: white; padding: 20px; text-align: center;">
+                                            <p>Thank you for choosing CARLEB CALEB VEHICLE RENT!</p>
+                                            <p>📧 support@carlebrent.com | 📞 +254-XXX-XXXXX</p>
+                                        </div>
+                                    </body>
+                                </html>
+                            `;
+
+                            // Send email using internal endpoint (assuming it's available)
+                            try {
+                                const axios = require('axios');
+                                const emailResponse = await axios.post(
+                                    'https://momanyicalebcarrent-awf5ffdbh8fnhca5.southafricanorth-01.azurewebsites.net/api/email/send',
+                                    {
+                                        to: booking.user_email,
+                                        subject: `M-Pesa Payment Receipt - Booking #${booking.booking_id}`,
+                                        html: receiptHtml
+                                    },
+                                    {
+                                        headers: {
+                                            'Content-Type': 'application/json'
+                                        },
+                                        timeout: 10000
+                                    }
+                                );
+
+                                console.log('📧 Email receipt sent successfully!', {
+                                    to: booking.user_email,
+                                    booking_id: booking.booking_id,
+                                    mpesa_receipt: mpesaReceiptNumber
+                                });
+
+                            } catch (emailError) {
+                                console.error('📧 Failed to send email receipt via API:', (emailError as Error).message);
+
+                                // Try direct email sending as fallback
+                                try {
+                                    const nodemailer = require('nodemailer');
+                                    const transporter = nodemailer.createTransporter({
+                                        host: 'smtp.gmail.com',
+                                        port: 587,
+                                        secure: false,
+                                        auth: {
+                                            user: process.env.EMAIL_SENDER,
+                                            pass: process.env.EMAIL_PASSWORD
+                                        }
+                                    });
+
+                                    await transporter.sendMail({
+                                        from: `"CARLEB Car Rental" <${process.env.EMAIL_SENDER}>`,
+                                        to: booking.user_email,
+                                        subject: `M-Pesa Payment Receipt - Booking #${booking.booking_id}`,
+                                        html: receiptHtml
+                                    });
+
+                                    console.log('📧 Email receipt sent via direct SMTP!');
+                                } catch (directEmailError) {
+                                    console.error('📧 Direct email also failed:', (directEmailError as Error).message);
+                                }
+                            }
+
+                        } else {
+                            console.log('⚠️ No user email found for booking:', booking_id);
+                        }
+                    }
+                } catch (emailError) {
+                    console.error('📧 Failed to send email receipt:', emailError);
+                    // Don't fail the callback if email fails
+                    logger.error('Failed to send M-Pesa receipt email', {
+                        module: 'payments',
+                        error: emailError instanceof Error ? emailError.message : 'Unknown error',
+                        booking_id,
+                        payment_id
+                    });
+                }
 
                 logger.info('M-Pesa payment completed', {
                     module: 'payments',
                     payment_id,
                     mpesaReceiptNumber,
                 });
+
             } else {
                 // Payment failed
+                console.log('❌ Payment failed, updating status...', {
+                    resultCode: ResultCode,
+                    resultDesc: ResultDesc
+                });
+
                 await this.updatePaymentStatus(payment_id, 'failed', {
                     payment_method: 'mpesa',
                     failure_reason: ResultDesc,
@@ -490,6 +666,7 @@ export class PaymentService {
 
             return { received: true };
         } catch (error) {
+            console.error('💥 Error handling M-Pesa callback:', error);
             logger.error('Error handling M-Pesa callback', {
                 module: 'payments',
                 error: error instanceof Error ? error.message : 'Unknown error',
@@ -500,10 +677,12 @@ export class PaymentService {
     }
 
     /**
-     * Check M-Pesa transaction status
+     * Check M-Pesa transaction status with enhanced error handling and frontend compatibility
      */
     async checkMpesaTransactionStatus(checkoutRequestId: string) {
         try {
+            console.log(`🔍 Checking M-Pesa status for: ${checkoutRequestId}`);
+
             const accessToken = await this.authenticateMpesa();
             const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, -3);
             const businessShortCode = process.env.MPESA_BUSINESS_SHORT_CODE || '174379';
@@ -522,6 +701,8 @@ export class PaymentService {
                 CheckoutRequestID: checkoutRequestId,
             };
 
+            console.log('🌐 Querying M-Pesa API...', { checkoutRequestId, businessShortCode });
+
             const response = await axios.post(
                 `${this.mpesaBaseUrl}/mpesa/stkpushquery/v1/query`,
                 queryPayload,
@@ -530,17 +711,154 @@ export class PaymentService {
                         Authorization: `Bearer ${accessToken}`,
                         'Content-Type': 'application/json',
                     },
+                    timeout: 30000, // 30 second timeout
                 }
             );
 
-            return response.data;
+            const mpesaData = response.data;
+            console.log('📡 M-Pesa API Response:', JSON.stringify(mpesaData, null, 2));
+
+            // Parse M-Pesa response and standardize format
+            let paymentStatus = 'pending';
+            let mpesaReceiptNumber = null;
+            let errorMessage = null;
+            let amount = null;
+            let phoneNumber = null;
+
+            if (mpesaData.ResponseCode === "0") {
+                if (mpesaData.ResultCode === "0") {
+                    paymentStatus = 'completed';
+
+                    // Extract details from CallbackMetadata
+                    if (mpesaData.CallbackMetadata && mpesaData.CallbackMetadata.Item) {
+                        const metadataItems = mpesaData.CallbackMetadata.Item;
+
+                        const receiptItem = metadataItems.find((item: any) => item.Name === 'MpesaReceiptNumber');
+                        const amountItem = metadataItems.find((item: any) => item.Name === 'Amount');
+                        const phoneItem = metadataItems.find((item: any) => item.Name === 'PhoneNumber');
+
+                        if (receiptItem) mpesaReceiptNumber = receiptItem.Value;
+                        if (amountItem) amount = amountItem.Value;
+                        if (phoneItem) phoneNumber = phoneItem.Value;
+                    }
+
+                    console.log('✅ Payment completed successfully', {
+                        mpesaReceiptNumber,
+                        amount,
+                        phoneNumber
+                    });
+
+                } else if (mpesaData.ResultCode === "1032") {
+                    paymentStatus = 'cancelled';
+                    errorMessage = 'Payment was cancelled by user';
+                    console.log('❌ Payment cancelled by user');
+
+                } else if (mpesaData.ResultCode === "1037") {
+                    paymentStatus = 'timeout';
+                    errorMessage = 'Payment request timed out';
+                    console.log('⏰ Payment request timed out');
+
+                } else if (mpesaData.ResultCode === "1001") {
+                    paymentStatus = 'failed';
+                    errorMessage = 'Insufficient funds in M-Pesa account';
+                    console.log('💰 Insufficient funds');
+
+                } else if (mpesaData.ResultCode === "1025") {
+                    paymentStatus = 'failed';
+                    errorMessage = 'Unable to lock subscriber, a transaction is already in process for the current subscriber';
+                    console.log('🔒 Transaction already in process');
+
+                } else {
+                    paymentStatus = 'failed';
+                    errorMessage = mpesaData.ResultDesc || 'Payment failed';
+                    console.log('❌ Payment failed:', mpesaData.ResultDesc);
+                }
+            } else if (mpesaData.ResponseCode === "500.001.1001") {
+                // Request is still being processed
+                paymentStatus = 'pending';
+                console.log('⏳ Payment still being processed');
+
+            } else {
+                paymentStatus = 'failed';
+                errorMessage = mpesaData.ResponseDescription || 'Unknown error occurred';
+                console.log('❌ API Error:', mpesaData.ResponseDescription);
+            }
+
+            // Return standardized response for frontend compatibility
+            const standardizedResponse = {
+                success: true,
+                data: {
+                    checkout_request_id: checkoutRequestId,
+                    payment_status: paymentStatus,
+                    mpesa_receipt_number: mpesaReceiptNumber,
+                    amount: amount,
+                    phone_number: phoneNumber,
+                    result_code: mpesaData.ResultCode,
+                    result_description: mpesaData.ResultDesc,
+                    error_message: errorMessage,
+                    timestamp: new Date().toISOString(),
+                    raw_mpesa_response: mpesaData // For debugging
+                }
+            };
+
+            console.log('📤 Sending standardized response:', JSON.stringify(standardizedResponse, null, 2));
+            return standardizedResponse;
+
         } catch (error) {
+            console.error('💥 Error checking M-Pesa status:', error);
+
+            // Handle specific axios errors
+            if ((error as any).response) {
+                console.error('M-Pesa API Error Response:', (error as any).response.data);
+                console.error('Status:', (error as any).response.status);
+
+                if ((error as any).response.status === 400) {
+                    return {
+                        success: false,
+                        error: 'Invalid checkout request ID',
+                        message: 'The provided checkout request ID is not valid or has expired',
+                        data: {
+                            checkout_request_id: checkoutRequestId,
+                            payment_status: 'failed',
+                            error_message: 'Invalid or expired checkout request ID',
+                            timestamp: new Date().toISOString()
+                        }
+                    };
+                }
+
+                if ((error as any).response.status === 401) {
+                    return {
+                        success: false,
+                        error: 'Authentication failed',
+                        message: 'M-Pesa authentication failed. Please check credentials.',
+                        data: {
+                            checkout_request_id: checkoutRequestId,
+                            payment_status: 'failed',
+                            error_message: 'Authentication failed',
+                            timestamp: new Date().toISOString()
+                        }
+                    };
+                }
+            }
+
             logger.error('Error checking M-Pesa transaction status', {
                 module: 'payments',
                 error: error instanceof Error ? error.message : 'Unknown error',
                 checkoutRequestId,
+                stack: (error as Error).stack
             });
-            throw ErrorFactory.internal('Failed to check transaction status');
+
+            return {
+                success: false,
+                error: 'Internal server error',
+                message: 'Failed to check payment status. Please try again.',
+                data: {
+                    checkout_request_id: checkoutRequestId,
+                    payment_status: 'error',
+                    error_message: 'Failed to check payment status',
+                    timestamp: new Date().toISOString()
+                }
+            };
         }
     }
 

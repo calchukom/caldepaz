@@ -114,7 +114,7 @@ export class PaymentController {
     }
 
     /**
-     * Check M-Pesa Transaction Status
+     * Check M-Pesa Transaction Status with enhanced error handling
      */
     async checkMpesaStatus(req: Request, res: Response, next: NextFunction) {
         try {
@@ -124,11 +124,38 @@ export class PaymentController {
                 throw ErrorFactory.badRequest('Checkout request ID is required');
             }
 
+            console.log(`🔍 Controller: Checking M-Pesa status for ${checkout_request_id}`);
+
             const result = await paymentService.checkMpesaTransactionStatus(checkout_request_id);
 
-            ResponseUtil.success(res, result, 'Transaction status retrieved');
+            // The service now returns a standardized response, so we can directly send it
+            if (result.success) {
+                res.json(result);
+            } else {
+                // Handle error responses from service
+                res.status(400).json(result);
+            }
+
         } catch (error) {
-            next(error);
+            console.error('💥 Controller error:', error);
+
+            logger.error('M-Pesa status check controller error', {
+                module: 'payments',
+                error: error instanceof Error ? error.message : 'Unknown error',
+                checkout_request_id: req.params.checkout_request_id
+            });
+
+            res.status(500).json({
+                success: false,
+                error: 'Internal server error',
+                message: 'Failed to check payment status. Please try again.',
+                data: {
+                    checkout_request_id: req.params.checkout_request_id,
+                    payment_status: 'error',
+                    error_message: 'Internal server error',
+                    timestamp: new Date().toISOString()
+                }
+            });
         }
     }
 
